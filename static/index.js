@@ -31,12 +31,12 @@ class LobbyScene extends Scene {
         document.body.appendChild(this.button);
 
         this.button.onclick = () => {
-            socket.emit('enterGameRoom', {});
+            socket.emit('enterGameRoom', { name: this.input.value });
         }
     }
 
     createNameInput = () => {
-        let _width = 200, _height = 40;
+        let _width = 250, _height = 40;
 
         this.input = document.createElement('input');
 
@@ -47,9 +47,10 @@ class LobbyScene extends Scene {
         this.input.style.width = _width + 'px';
         this.input.style.height = _height + 'px';
         this.input.style.borderColor = 'rgb(255, 255, 245)';
-        this.input.style.font = 'bold 30px blackHanSans';
+        this.input.style.font = '30px blackHanSans';
         this.input.style.textAlign = 'center';
         this.input.style.borderRadius = '5px';
+        this.input.placeholder = '이름을 입력하세요.';
 
         document.body.appendChild(this.input);
         this.input.focus();
