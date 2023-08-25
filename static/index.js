@@ -3,6 +3,7 @@ var socket = io();
 var app = new App();
 var ctx = App.ctx;
 var canvas = App.canvas;
+var ip = '';
 
 class LobbyScene extends Scene {
     constructor() {
@@ -31,7 +32,7 @@ class LobbyScene extends Scene {
         document.body.appendChild(this.button);
 
         this.button.onclick = () => {
-            socket.emit('enterGameRoom', { name: this.input.value });
+            socket.emit('enterGameRoom', { name: this.input.value, ip: ip });
         }
     }
 
@@ -78,7 +79,6 @@ class LobbyScene extends Scene {
 
 socket.on('enterGameRoomConfirmed', (packet) => {
     document.cookie = packet.key;
-
     location.href = 'game.html';
 });
 

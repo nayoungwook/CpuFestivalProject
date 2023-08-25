@@ -4,6 +4,27 @@ var Mathf = /** @class */ (function () {
     Mathf.getDistance = function (v1, v2) {
         return Math.sqrt((v1.x - v2.x) * (v1.x - v2.x) + (v1.y - v2.y) * (v1.y - v2.y));
     };
+    Mathf.getRenderInfo = function (position, width, height) {
+        let result = new Object();
+        result.renderPosition = new Vector(0, 0);
+        result.renderWidth = width * Camera.position.z;
+        result.renderHeight = height * Camera.position.z;
+        var _dist = Mathf.getDistance(new Vector(App.canvas.width / 2 + Camera.position.x, App.canvas.height / 2 + Camera.position.y), new Vector(position.x, position.y));
+        var _rot = Math.atan2(App.canvas.height / 2 + Camera.position.y - position.y, App.canvas.width / 2 + Camera.position.x - position.x) + Camera.rotation;
+        var xx = (position.x - (App.canvas.width / 2 + Camera.position.x));
+        var yy = (position.y - (App.canvas.height / 2 + Camera.position.y));
+        var _zDist = _dist * (Camera.position.z);
+        var _zx = (Math.cos(_rot) * _zDist), _zy = (Math.sin(_rot) * _zDist);
+        result.renderPosition.x = position.x - Camera.position.x - (xx + _zx);
+        result.renderPosition.y = position.y - Camera.position.y - (yy + _zy);
+        var outScreenSize = Math.sqrt(result.renderWidth * result.renderWidth + result.renderHeight * result.renderHeight);
+        result.inScreen = true;
+        if (position.x < -outScreenSize || position.x > App.canvas.width + outScreenSize)
+            result.inScreen = false;
+        if (position.y < -outScreenSize || position.y > App.canvas.width + outScreenSize)
+            result.inScreen = false;
+        return result;
+    }
     return Mathf;
 }());
 var Color = /** @class */ (function () {
@@ -78,38 +99,23 @@ var GameObject = /** @class */ (function () {
         App.renderQueue.push(this);
     };
     GameObject.prototype._render = function () {
-        this.renderWidth = this.width * Camera.position.z;
-        this.renderHeight = this.height * Camera.position.z;
-        var _dist = Mathf.getDistance(new Vector(App.canvas.width / 2 + Camera.position.x, App.canvas.height / 2 + Camera.position.y), new Vector(this.position.x, this.position.y));
-        var _rot = Math.atan2(App.canvas.height / 2 + Camera.position.y - this.position.y, App.canvas.width / 2 + Camera.position.x - this.position.x) + Camera.rotation;
-        var xx = (this.position.x - (App.canvas.width / 2 + Camera.position.x));
-        var yy = (this.position.y - (App.canvas.height / 2 + Camera.position.y));
-        var _zDist = _dist * (Camera.position.z);
-        var _zx = (Math.cos(_rot) * _zDist), _zy = (Math.sin(_rot) * _zDist);
-        this.renderPosition.x = this.position.x - Camera.position.x - (xx + _zx);
-        this.renderPosition.y = this.position.y - Camera.position.y - (yy + _zy);
-        var outScreenSize = Math.sqrt(this.renderWidth * this.renderWidth + this.renderHeight * this.renderHeight);
-        this.inScreen = true;
-        if (this.position.x < -outScreenSize || this.position.x > App.canvas.width + outScreenSize)
-            this.inScreen = false;
-        if (this.position.y < -outScreenSize || this.position.y > App.canvas.width + outScreenSize)
-            this.inScreen = false;
+        let renderInfo = Mathf.getRenderInfo(this.position, this.width, this.height);
         App.ctx.save();
-        App.ctx.translate(this.renderPosition.x, this.renderPosition.y);
+        App.ctx.translate(renderInfo.renderPosition.x, renderInfo.renderPosition.y);
         App.ctx.rotate(this.rotation + Camera.rotation);
         if (this.renderType == 'image') {
             if (this.sprite != null) {
-                App.ctx.drawImage(this.sprite.image, -this.renderWidth / 2, -this.renderHeight / 2, this.renderWidth, this.renderHeight);
+                App.ctx.drawImage(this.sprite.image, -renderInfo.renderWidth / 2, -renderInfo.renderHeight / 2, renderInfo.renderWidth, renderInfo.renderHeight);
             }
         }
         else if (this.renderType == 'rect') {
             App.ctx.fillStyle = this.color.getString();
-            App.ctx.fillRect(-this.renderWidth / 2, -this.renderHeight / 2, this.renderWidth, this.renderHeight);
+            App.ctx.fillRect(-renderInfo.renderWidth / 2, -renderInfo.renderHeight / 2, renderInfo.renderWidth, renderInfo.renderHeight);
         }
         else if (this.renderType == 'text') {
             App.ctx.fillStyle = this.color.getString();
             App.ctx.textAlign = this.textAlign;
-            App.ctx.fillText(this.text, -this.renderWidth / 2, -this.renderHeight / 2);
+            App.ctx.fillText(renderInfo.text, -renderInfo.renderWidth / 2, -renderInfo.renderHeight / 2);
         }
         App.ctx.restore();
     };

@@ -51,7 +51,7 @@ io.on('connection', (socket) => {
 
     socket.on('userInput', (packet) => {
         if (users.has(packet.key))
-            users.get(packet.key).movement({ w: packet.w, s: packet.s, a: packet.a, d: packet.d });
+            users.get(packet.key).movement({ joystickDir: packet.joystickDir, move: packet.move });
     });
 });
 
