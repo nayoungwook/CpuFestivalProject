@@ -1,9 +1,8 @@
 var socket = io();
-
-var app = new App();
 var ctx = App.ctx;
 var canvas = App.canvas;
 var ip = '';
+var waitingEnter = false;
 
 class LobbyScene extends Scene {
     constructor() {
@@ -11,6 +10,31 @@ class LobbyScene extends Scene {
 
         this.createNameInput();
         this.createEnterButton();
+        this.createFullScreenButton();
+    }
+
+    createFullScreenButton = () => {
+        let _width = 200, _height = 50;
+
+        this.button = document.createElement('button');
+
+        this.button.style.position = 'fixed';
+        this.button.id = 'element';
+        this.button.style.left = (window.innerWidth / 2 - _width / 2 + 5) + 'px';
+        this.button.style.top = (window.innerHeight / 2 - _height / 2 + _height * 2 + 60) + 'px';
+        this.button.style.width = _width + 'px';
+        this.button.style.height = _height + 'px';
+        this.button.style.borderWidth = '3px';
+        this.button.style.borderRadius = '10px';
+        this.button.style.backgroundColor = 'rgb(255, 255, 245)';
+        this.button.textContent = '풀스크린';
+        this.button.style.font = '30px blackHanSans';
+
+        document.body.appendChild(this.button);
+
+        this.button.onclick = () => {
+            document.documentElement.requestFullscreen();
+        }
     }
 
     createEnterButton = () => {
@@ -19,6 +43,7 @@ class LobbyScene extends Scene {
         this.button = document.createElement('button');
 
         this.button.style.position = 'fixed';
+        this.button.id = 'element';
         this.button.style.left = (window.innerWidth / 2 - _width / 2 + 5) + 'px';
         this.button.style.top = (window.innerHeight / 2 - _height / 2 + _height * 2) + 'px';
         this.button.style.width = _width + 'px';
@@ -32,6 +57,7 @@ class LobbyScene extends Scene {
         document.body.appendChild(this.button);
 
         this.button.onclick = () => {
+            waitingEnter = true;
             socket.emit('enterGameRoom', { name: this.input.value, ip: ip });
         }
     }
@@ -42,6 +68,7 @@ class LobbyScene extends Scene {
         this.input = document.createElement('input');
 
         this.input.type = 'text';
+        this.input.id = 'element';
         this.input.style.position = 'fixed';
         this.input.style.left = (window.innerWidth / 2 - _width / 2) + 'px';
         this.input.style.top = (window.innerHeight / 2 - _height / 2) + 'px';
@@ -58,7 +85,8 @@ class LobbyScene extends Scene {
     }
 
     tick = () => {
-
+        ctx = App.ctx;
+        canvas = App.canvas;
     }
 
     renderTitle = () => {
@@ -78,10 +106,8 @@ class LobbyScene extends Scene {
 }
 
 socket.on('enterGameRoomConfirmed', (packet) => {
-    document.cookie = packet.key;
-    location.href = 'game.html';
+    if (state == 'index' && waitingEnter) {
+        document.cookie = packet.key;
+        changeState('game');
+    }
 });
-
-window.onload = () => {
-    App.scene = new LobbyScene();
-}
