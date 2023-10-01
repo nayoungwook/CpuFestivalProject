@@ -5,7 +5,7 @@ const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
 
-const { Player } = require('./server/gameData');
+const { Player } = require('./server/gameServer');
 
 app.use(express.static('static'));
 
@@ -51,26 +51,38 @@ io.on('connection', (socket) => {
 
     socket.on('userInput', (packet) => {
         if (users.has(packet.key)) {
+            // update user with packet
             users.get(packet.key).movement({ joystickDir: packet.joystickDir, move: packet.move });
-            users.get(packet.key).shot({ gunDir: packet.gunDir, shot: packet.shot }, bullets);
+            users.get(packet.key).shotUpdate({ gunDir: packet.gunDir, shot: packet.shot }, bullets);
         }
     });
 });
 
-function update() {
+function updateGame() {
+    for (let i = 0; i < bullets.length; i++) {
+        bullets[i].movement(bullets, users);
+    }
+
+    for (const [key, value] of users.entries()) {
+        value.tick();
+    }
+}
+
+function sendGamePackets() {
     var data = new Object();
     data.users = [];
     data.bullets = bullets;
-
-    for(let i=0; i<bullets.length; i++){
-        bullets[i].movement();
-    }
 
     for (const [key, value] of users.entries()) {
         data.users.push(value);
     }
 
     io.emit('gameData', data);
+}
+
+function update() {
+    updateGame();
+    sendGamePackets();
 }
 
 server.listen(3000, () => {

@@ -71,14 +71,16 @@ class GameScene extends Scene {
     }
 
     sendPacket = () => {
-
-        let _joystickDir;
+        let _joystickDir = 0;
         if (this.joystickTouch != null)
             _joystickDir = Math.atan2(this.joystickTouch.clientY - this.padPosition.y, this.joystickTouch.clientX - this.padPosition.x);
 
-        let _gunDir;
+        let _gunDir = 0;
         if (this.gunJoystickTouch != null)
             _gunDir = Math.atan2(this.gunJoystickTouch.clientY - this.gunPadPosition.y, this.gunJoystickTouch.clientX - this.gunPadPosition.x);
+
+        this.joystickDir = _joystickDir;
+        this.gunJoystickDir = _gunDir;
 
         socket.emit('userInput', {
             joystickDir: _joystickDir, move: this.joystickTouch != null,
@@ -102,10 +104,11 @@ class GameScene extends Scene {
     tick = () => {
         ctx = App.ctx;
         canvas = App.canvas;
+
         var now = Date.now();
         var dt = now - this.lastUpdate;
         this.lastUpdate = now;
-        this.frame = dt;
+        this.frame = Math.round(1000 / dt);
 
         zoomRatio = (canvas.width / 1920);
         let padSize = 100 * zoomRatio;
@@ -121,8 +124,8 @@ class GameScene extends Scene {
         findMyPlayer();
         if (!myPlayer) return;
 
-        Camera.position.x += ((myPlayer.position.x - canvas.width / 2) - Camera.position.x) / 10;
-        Camera.position.y += ((myPlayer.position.y - canvas.height / 2) - Camera.position.y) / 10;
+        Camera.position.x += ((myPlayer.position.x - canvas.width / 2) - Camera.position.x) / 10 + Math.round(Math.cos(this.gunJoystickDir) * 10);
+        Camera.position.y += ((myPlayer.position.y - canvas.height / 2) - Camera.position.y) / 10 + Math.round(Math.sin(this.gunJoystickDir) * 10);
 
         this.updateJoyStick();
 
@@ -165,7 +168,7 @@ class GameScene extends Scene {
         if (touch != null) {
             let touchPosition = new Vector(touch.clientX, touch.clientY);
             let dist = Mathf.getDistance(touchPosition, padPosition);
-            if (dist >= 30) dist = 30;
+            if (dist >= 90) dist = 90;
             let dir = Math.atan2(touchPosition.y - padPosition.y, touchPosition.x - padPosition.x);
 
             tokenPosition.x += Math.cos(dir) * dist;
@@ -186,24 +189,34 @@ class GameScene extends Scene {
         for (let i = 0; i < users.length; i++) {
             ctx.font = "bold 20px blackHanSans";
             ctx.textAlign = 'center';
+
+            let textureCoord = Mathf.getRenderInfo(users[i].position, MS, MS);
+
             ctx.fillStyle = 'rgb(39, 39, 54)';
+            ctx.fillText(users[i].name, textureCoord.renderPosition.x, textureCoord.renderPosition.y - MS / 3 * 4);
 
-            let textCoord = Mathf.getRenderInfo(users[i].position, 80, 80);
-
-            ctx.fillText(users[i].name, textCoord.renderPosition.x, textCoord.renderPosition.y - MS / 2);
             ctx.fillStyle = 'rgb(250, 150, 120)';
-            let playerCoord = Mathf.getRenderInfo(users[i].position, 80, 80);
-            ctx.fillRect(playerCoord.renderPosition.x, playerCoord.renderPosition.y, 80, 80);
+            ctx.fillRect(textureCoord.renderPosition.x - textureCoord.renderWidth / 2,
+                textureCoord.renderPosition.y - textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
+
+            ctx.fillStyle = 'rgb(39, 39, 54)';
+            ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS, MS, MS / 5);
+
+            ctx.fillStyle = 'rgb(255, 100, 154)';
+            if (users[i].fullHealth != 0)
+                ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS, (MS * users[i].health) / users[i].fullHealth, MS / 5);
+
         }
     }
 
     renderBullets = () => {
         for (let i = 0; i < bullets.length; i++) {
 
-            let coord = Mathf.getRenderInfo(bullets[i].position, 20, 20);
+            let textureCoord = Mathf.getRenderInfo(bullets[i].position, MS / 2, MS / 2);
 
             ctx.fillStyle = 'rgb(250, 255, 120)';
-            ctx.fillRect(coord.renderPosition.x, coord.renderPosition.y, 20, 20);
+            ctx.fillRect(textureCoord.renderPosition.x - textureCoord.renderWidth / 2,
+                textureCoord.renderPosition.y - textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
         }
     }
 
