@@ -3,11 +3,13 @@ var socket = io();
 var ctx = App.ctx;
 var canvas = App.canvas;
 
-const MS = 60;
+var MS = 60;
 
-var keyW = false, keyS = false, keyA = false, keyD = false;
+var die = false;
 
 var users = [];
+var usersCache = [];
+
 var bullets = [];
 var myPlayer = undefined;
 var zoomRatio = 0;
@@ -29,28 +31,6 @@ addEventListener('touchend', (e) => {
     touches = e.touches;
 });
 
-addEventListener('keydown', (e) => {
-    if (e.key == 'w')
-        keyW = true;
-    if (e.key == 's')
-        keyS = true;
-    if (e.key == 'a')
-        keyA = true;
-    if (e.key == 'd')
-        keyD = true;
-});
-
-addEventListener('keyup', (e) => {
-    if (e.key == 'w')
-        keyW = false;
-    if (e.key == 's')
-        keyS = false;
-    if (e.key == 'a')
-        keyA = false;
-    if (e.key == 'd')
-        keyD = false;
-});
-
 class GameScene extends Scene {
     constructor() {
         super();
@@ -58,12 +38,17 @@ class GameScene extends Scene {
         this.initializeGame();
         this.padPosition = new Vector(0, 0);
         this.gunPadPosition = new Vector(0, 0);
-        this.joystickTouched = false;
         this.joystickDir = 0;
-        this.gunJoystickTouched = false;
         this.gunJoystickDir = 0;
         this.frame = 0;
+        this.ping = 0;
         this.lastUpdate = Date.now();
+
+        this.characterImage = new Image();
+        this.characterImage.src = 'assets/character.png';
+
+        this.bulletImage = new Image();
+        this.bulletImage.src = 'assets/bullet.png';
     }
 
     initializeGame = () => {
@@ -102,6 +87,13 @@ class GameScene extends Scene {
     }
 
     tick = () => {
+        const start = Date.now();
+
+        socket.emit("ping", () => {
+            const duration = Date.now() - start;
+            this.ping = duration;
+        });
+
         ctx = App.ctx;
         canvas = App.canvas;
 
@@ -119,13 +111,18 @@ class GameScene extends Scene {
         this.gunPadPosition.x = canvas.width - padSize / 5 * 14;
         this.gunPadPosition.y = canvas.height - padSize / 5 * 14;
 
-        Camera.position.z = zoomRatio;
+        if (die) {
+            Camera.position.z += (0.3 - Camera.position.z) / 20;
+        }
+        else {
+            Camera.position.z = zoomRatio;
+        }
 
         findMyPlayer();
         if (!myPlayer) return;
 
-        Camera.position.x += ((myPlayer.position.x - canvas.width / 2) - Camera.position.x) / 10 + Math.round(Math.cos(this.gunJoystickDir) * 10);
-        Camera.position.y += ((myPlayer.position.y - canvas.height / 2) - Camera.position.y) / 10 + Math.round(Math.sin(this.gunJoystickDir) * 10);
+        Camera.position.x += Math.round(((myPlayer.position.x - canvas.width / 2) - Camera.position.x) / 8 + (Math.cos(this.gunJoystickDir) * 10) * (this.gunJoystickTouch != null));
+        Camera.position.y += Math.round(((myPlayer.position.y - canvas.height / 2) - Camera.position.y) / 8 + (Math.sin(this.gunJoystickDir) * 10) * (this.gunJoystickTouch != null));
 
         this.updateJoyStick();
 
@@ -141,10 +138,8 @@ class GameScene extends Scene {
 
         ctx.fillStyle = 'rgb(20, 20, 20)'
         ctx.fillText('Frame : ' + this.frame, 10, 60);
-
         ctx.fillStyle = 'rgb(20, 20, 20)'
-        ctx.font = "bold 10px blackHanSans";
-        ctx.fillText('Packet : ' + JSON.stringify(globalPacket), 10, 90);
+        ctx.fillText('Ping : ' + this.ping, 10, 90);
     }
 
     renderJoystick = (padPosition, touch) => {
@@ -192,11 +187,13 @@ class GameScene extends Scene {
 
             let textureCoord = Mathf.getRenderInfo(users[i].position, MS, MS);
 
+            textureCoord.renderPosition.x = Math.round(textureCoord.renderPosition.x);
+            textureCoord.renderPosition.y = Math.round(textureCoord.renderPosition.y);
+
             ctx.fillStyle = 'rgb(39, 39, 54)';
             ctx.fillText(users[i].name, textureCoord.renderPosition.x, textureCoord.renderPosition.y - MS / 3 * 4);
 
-            ctx.fillStyle = 'rgb(250, 150, 120)';
-            ctx.fillRect(textureCoord.renderPosition.x - textureCoord.renderWidth / 2,
+            ctx.drawImage(this.characterImage, textureCoord.renderPosition.x - textureCoord.renderWidth / 2,
                 textureCoord.renderPosition.y - textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
 
             ctx.fillStyle = 'rgb(39, 39, 54)';
@@ -212,12 +209,29 @@ class GameScene extends Scene {
     renderBullets = () => {
         for (let i = 0; i < bullets.length; i++) {
 
-            let textureCoord = Mathf.getRenderInfo(bullets[i].position, MS / 2, MS / 2);
+            let textureCoord = Mathf.getRenderInfo(bullets[i].position, MS / 3 * 2, MS / 3 * 2);
+
+            textureCoord.renderPosition.x = Math.round(textureCoord.renderPosition.x);
+            textureCoord.renderPosition.y = Math.round(textureCoord.renderPosition.y);
 
             ctx.fillStyle = 'rgb(250, 255, 120)';
-            ctx.fillRect(textureCoord.renderPosition.x - textureCoord.renderWidth / 2,
+            ctx.drawImage(this.bulletImage, textureCoord.renderPosition.x - textureCoord.renderWidth / 2,
                 textureCoord.renderPosition.y - textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
         }
+    }
+
+    renderDieScreen = () => {
+        if (!die) return;
+
+        ctx.fillStyle = 'rgba(40, 40, 40, 0.5)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.font = "bold 100px blackHanSans";
+        ctx.textAlign = 'center';
+
+        ctx.fillStyle = 'rgb(250, 150, 120)';
+        ctx.fillText('유다희', canvas.width / 2, canvas.height / 3);
+
     }
 
     render = () => {
@@ -229,6 +243,7 @@ class GameScene extends Scene {
         this.renderDebug(); // TODO : disable this debug function
         this.renderJoystick(this.padPosition, this.joystickTouch);
         this.renderJoystick(this.gunPadPosition, this.gunJoystickTouch);
+        this.renderDieScreen();
     }
 }
 
@@ -242,6 +257,18 @@ function findMyPlayer() {
 
 socket.on('gameData', (packet) => {
     globalPacket = packet;
+
+    MS = packet.gameData.MS;
+
+    usersCache = users;
     users = packet.users;
+
     bullets = packet.bullets;
 });
+
+socket.on('playerDied', (packet) => {
+    if (packet.key == myPlayer.key) {
+        die = true;
+        console.log('die!');
+    }
+})

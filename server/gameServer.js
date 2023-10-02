@@ -8,6 +8,7 @@ class Player {
         this.key = key;
 
         this.position = { x: 0, y: 0 };
+        this.targetPosition = { x: 0, y: 0 };
 
         this.xv = 0;
         this.yv = 0;
@@ -15,29 +16,36 @@ class Player {
 
         this.shotTimer = 0;
 
-        this.health = 10;
-        this.fullHealth = 10;
+        this.fullHealth = 50;
+        this.health = this.fullHealth;
 
         this.status = {
-            moveSpeed: 3.5,
-            shotSpeed: 0.15,
-            shotRange: 350,
-            bulletSpeed: 20,
+            moveSpeed: 4.5,
+            shotSpeed: 0.05,
+            shotRange: 850,
+            bulletSpeed: 40,
             damage: 2,
         }
     }
 
-    tick = () => {
+    tick = (users, io) => {
         if (this.shotTimer < 1) {
             this.shotTimer += this.status.shotSpeed;
+        }
+        if (this.health <= 0) {
+            io.emit('playerDied', { key: this.key });
+            users.delete(this.key);
         }
     }
 
     movement = (packet) => {
         if (packet.move) {
-            this.position.x += Math.round(Math.cos(packet.joystickDir) * this.status.moveSpeed);
-            this.position.y += Math.round(Math.sin(packet.joystickDir) * this.status.moveSpeed);
+            this.targetPosition.x += Math.round(Math.cos(packet.joystickDir) * this.status.moveSpeed);
+            this.targetPosition.y += Math.round(Math.sin(packet.joystickDir) * this.status.moveSpeed);
         }
+
+        this.position.x += (this.targetPosition.x - this.position.x) / 5;
+        this.position.y += (this.targetPosition.y - this.position.y) / 5;
     }
 
     shot = (packet, bullets) => {
@@ -68,13 +76,14 @@ class Bullet {
         bullets.splice(bullets.indexOf(this), 1);
     }
 
-    movement = (bullets, users) => {
+    movement = (bullets, users, MS) => {
         this.position.x += Math.cos(this.dir) * this.speed;
         this.position.y += Math.sin(this.dir) * this.speed;
 
         for (const [key, value] of users.entries()) {
             if (value != this.owner) {
-                if (getDistance(this.position, value.position) <= 30) {
+                if (Math.abs(this.position.x - value.position.x) <= (MS / 2 + (MS / 3 * 2) / 2) &&
+                    Math.abs(this.position.y - value.position.y) <= (MS / 2 + (MS / 3 * 2) / 2)) {
                     value.health -= this.damage;
                     this.delete(bullets);
                 }

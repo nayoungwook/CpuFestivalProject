@@ -16,23 +16,23 @@ class LobbyScene extends Scene {
     createFullScreenButton = () => {
         let _width = 200, _height = 50;
 
-        this.button = document.createElement('button');
+        this.fullscreenButton = document.createElement('button');
 
-        this.button.style.position = 'fixed';
-        this.button.id = 'element';
-        this.button.style.left = (window.innerWidth / 2 - _width / 2 + 5) + 'px';
-        this.button.style.top = (window.innerHeight / 2 - _height / 2 + _height * 2 + 60) + 'px';
-        this.button.style.width = _width + 'px';
-        this.button.style.height = _height + 'px';
-        this.button.style.borderWidth = '3px';
-        this.button.style.borderRadius = '10px';
-        this.button.style.backgroundColor = 'rgb(255, 255, 245)';
-        this.button.textContent = '풀스크린';
-        this.button.style.font = '30px blackHanSans';
+        this.fullscreenButton.style.position = 'fixed';
+        this.fullscreenButton.id = 'element';
+        this.fullscreenButton.style.left = (window.innerWidth / 2 - _width / 2 + 5) + 'px';
+        this.fullscreenButton.style.top = (window.innerHeight / 2 - _height / 2 + _height * 2 + 60) + 'px';
+        this.fullscreenButton.style.width = _width + 'px';
+        this.fullscreenButton.style.height = _height + 'px';
+        this.fullscreenButton.style.borderWidth = '3px';
+        this.fullscreenButton.style.borderRadius = '10px';
+        this.fullscreenButton.style.backgroundColor = 'rgb(255, 255, 245)';
+        this.fullscreenButton.textContent = '풀스크린';
+        this.fullscreenButton.style.font = '30px blackHanSans';
 
-        document.body.appendChild(this.button);
+        document.body.appendChild(this.fullscreenButton);
 
-        this.button.onclick = () => {
+        this.fullscreenButton.onclick = () => {
             document.documentElement.requestFullscreen();
         }
     }
@@ -87,6 +87,18 @@ class LobbyScene extends Scene {
     tick = () => {
         ctx = App.ctx;
         canvas = App.canvas;
+
+        let _width = 200, _height = 50;
+        this.button.style.left = (window.innerWidth / 2 - _width / 2 + 5) + 'px';
+        this.button.style.top = (window.innerHeight / 2 - _height / 2 + _height * 2) + 'px';
+
+        this.fullscreenButton.style.left = (window.innerWidth / 2 - _width / 2 + 5) + 'px';
+        this.fullscreenButton.style.top = (window.innerHeight / 2 - _height / 2 + _height * 2 + 60) + 'px';
+
+        _width = 250, _height = 40;
+        this.input.style.left = (window.innerWidth / 2 - _width / 2) + 'px';
+        this.input.style.top = (window.innerHeight / 2 - _height / 2) + 'px';
+
     }
 
     renderTitle = () => {

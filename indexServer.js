@@ -4,14 +4,18 @@ const http = require('http');
 const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
+const fs = require('fs');
 
 const { Player } = require('./server/gameServer');
 
 app.use(express.static('static'));
+app.use(express.static('static/assets'));
 
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/static/index.html');
 });
+
+const MS = 140;
 
 var users = new Map();
 var bullets = [];
@@ -48,7 +52,9 @@ io.on('connection', (socket) => {
 
         users.set(key, new Player(key, packet.name));
     });
-
+    socket.on("ping", (callback) => {
+        callback();
+    });
     socket.on('userInput', (packet) => {
         if (users.has(packet.key)) {
             // update user with packet
@@ -60,18 +66,24 @@ io.on('connection', (socket) => {
 
 function updateGame() {
     for (let i = 0; i < bullets.length; i++) {
-        bullets[i].movement(bullets, users);
+        bullets[i].movement(bullets, users, MS);
     }
 
     for (const [key, value] of users.entries()) {
-        value.tick();
+        value.tick(users, io);
     }
 }
 
 function sendGamePackets() {
     var data = new Object();
+
     data.users = [];
     data.bullets = bullets;
+
+    var gameData = new Object();
+    gameData.MS = MS;
+
+    data.gameData = gameData;
 
     for (const [key, value] of users.entries()) {
         data.users.push(value);
@@ -85,7 +97,7 @@ function update() {
     sendGamePackets();
 }
 
-server.listen(3000, () => {
+server.listen(3000, async () => {
     console.log('listening on *:3000');
 });
 
