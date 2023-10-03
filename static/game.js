@@ -11,6 +11,8 @@ var users = [];
 var usersCache = [];
 
 var bullets = [];
+var landforms = [];
+
 var myPlayer = undefined;
 var zoomRatio = 0;
 var globalPacket = null;
@@ -49,6 +51,9 @@ class GameScene extends Scene {
 
         this.bulletImage = new Image();
         this.bulletImage.src = 'assets/bullet.png';
+
+        this.rockImage = new Image();
+        this.rockImage.src = 'assets/rock.png';
     }
 
     initializeGame = () => {
@@ -121,8 +126,8 @@ class GameScene extends Scene {
         findMyPlayer();
         if (!myPlayer) return;
 
-        Camera.position.x += Math.round(((myPlayer.position.x - canvas.width / 2) - Camera.position.x) / 8 + (Math.cos(this.gunJoystickDir) * 10) * (this.gunJoystickTouch != null));
-        Camera.position.y += Math.round(((myPlayer.position.y - canvas.height / 2) - Camera.position.y) / 8 + (Math.sin(this.gunJoystickDir) * 10) * (this.gunJoystickTouch != null));
+        Camera.position.x += Math.round(((myPlayer.position.x - canvas.width / 2) - Camera.position.x) / 15);
+        Camera.position.y += Math.round(((myPlayer.position.y - canvas.height / 2) - Camera.position.y) / 15);
 
         this.updateJoyStick();
 
@@ -230,19 +235,35 @@ class GameScene extends Scene {
         ctx.textAlign = 'center';
 
         ctx.fillStyle = 'rgb(250, 150, 120)';
-        ctx.fillText('유다희', canvas.width / 2, canvas.height / 3);
+        ctx.fillText('사망하셨습니다.', canvas.width / 2, canvas.height / 3);
 
+    }
+
+    renderLandforms = () => {
+        for (let i = 0; i < landforms.length; i++) {
+            let textureCoord = Mathf.getRenderInfo(landforms[i].position, MS * 2, MS * 2);
+
+            textureCoord.renderPosition.x = Math.round(textureCoord.renderPosition.x);
+            textureCoord.renderPosition.y = Math.round(textureCoord.renderPosition.y);
+
+            ctx.drawImage(this.rockImage, textureCoord.renderPosition.x - textureCoord.renderWidth / 2,
+                textureCoord.renderPosition.y - textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
+        }
     }
 
     render = () => {
         ctx.fillStyle = 'rgb(120, 255, 150)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        this.renderLandforms();
         this.renderPlayers();
         this.renderBullets();
+
         this.renderDebug(); // TODO : disable this debug function
+
         this.renderJoystick(this.padPosition, this.joystickTouch);
         this.renderJoystick(this.gunPadPosition, this.gunJoystickTouch);
+
         this.renderDieScreen();
     }
 }
@@ -260,8 +281,9 @@ socket.on('gameData', (packet) => {
 
     MS = packet.gameData.MS;
 
-    usersCache = users;
+    //    usersCache = users;
     users = packet.users;
+    landforms = packet.landforms;
 
     bullets = packet.bullets;
 });

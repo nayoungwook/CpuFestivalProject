@@ -6,7 +6,7 @@ const { Server } = require("socket.io");
 const io = new Server(server);
 const fs = require('fs');
 
-const { Player } = require('./server/gameServer');
+const { Player, Rock } = require('./server/gameServer');
 
 app.use(express.static('static'));
 app.use(express.static('static/assets'));
@@ -19,6 +19,15 @@ const MS = 140;
 
 var users = new Map();
 var bullets = [];
+var landforms = [];
+
+function createLandforms() {
+    for (let i = 0; i < 20; i++) {
+        landforms.push(new Rock(Math.round(Math.random() * 8000) - 4000, Math.round(Math.random() * 8000) - 4000));
+    }
+}
+
+createLandforms();
 
 var keyCache = [
     'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
@@ -58,7 +67,7 @@ io.on('connection', (socket) => {
     socket.on('userInput', (packet) => {
         if (users.has(packet.key)) {
             // update user with packet
-            users.get(packet.key).movement({ joystickDir: packet.joystickDir, move: packet.move });
+            users.get(packet.key).movement({ joystickDir: packet.joystickDir, move: packet.move }, landforms, MS);
             users.get(packet.key).shotUpdate({ gunDir: packet.gunDir, shot: packet.shot }, bullets);
         }
     });
@@ -66,7 +75,7 @@ io.on('connection', (socket) => {
 
 function updateGame() {
     for (let i = 0; i < bullets.length; i++) {
-        bullets[i].movement(bullets, users, MS);
+        bullets[i].movement(bullets, users, landforms, MS);
     }
 
     for (const [key, value] of users.entries()) {
@@ -79,6 +88,7 @@ function sendGamePackets() {
 
     data.users = [];
     data.bullets = bullets;
+    data.landforms = landforms;
 
     var gameData = new Object();
     gameData.MS = MS;
@@ -86,7 +96,14 @@ function sendGamePackets() {
     data.gameData = gameData;
 
     for (const [key, value] of users.entries()) {
-        data.users.push(value);
+        let userData = new Object();
+        userData.position = value.position;
+        userData.health = value.health;
+        userData.fullHealth = value.fullHealth;
+        userData.key = value.key;
+        userData.name = value.name;
+
+        data.users.push(userData);
     }
 
     io.emit('gameData', data);

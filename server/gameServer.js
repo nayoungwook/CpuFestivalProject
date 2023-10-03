@@ -38,14 +38,36 @@ class Player {
         }
     }
 
-    movement = (packet) => {
+    checkCollision = (landforms, MS) => {
+        for (let i = 0; i < landforms.length; i++) {
+            if (Math.abs(this.targetPosition.x - landforms[i].position.x) <= (MS + MS / 2) &&
+                Math.abs(this.targetPosition.y - landforms[i].position.y) <= (MS + MS / 2)) {
+                return landforms[i];
+            }
+        }
+        return null;
+    }
+
+    movement = (packet, landforms, MS) => {
         if (packet.move) {
+            let backupX = this.targetPosition.x;
             this.targetPosition.x += Math.round(Math.cos(packet.joystickDir) * this.status.moveSpeed);
+            if (this.checkCollision(landforms, MS) != null) {
+                this.targetPosition.x = backupX;
+            }
+
+            let backupY = this.targetPosition.y;
             this.targetPosition.y += Math.round(Math.sin(packet.joystickDir) * this.status.moveSpeed);
+            if (this.checkCollision(landforms, MS) != null) {
+                this.targetPosition.y = backupY;
+            }
         }
 
         this.position.x += (this.targetPosition.x - this.position.x) / 5;
         this.position.y += (this.targetPosition.y - this.position.y) / 5;
+
+        this.position.x = Math.round(this.position.x);
+        this.position.y = Math.round(this.position.y);
     }
 
     shot = (packet, bullets) => {
@@ -76,9 +98,16 @@ class Bullet {
         bullets.splice(bullets.indexOf(this), 1);
     }
 
-    movement = (bullets, users, MS) => {
+    movement = (bullets, users, landforms, MS) => {
         this.position.x += Math.cos(this.dir) * this.speed;
         this.position.y += Math.sin(this.dir) * this.speed;
+
+        for (let i = 0; i < landforms.length; i++) {
+            if (Math.abs(this.position.x - landforms[i].position.x) <= (MS + (MS / 3 * 2) / 2) &&
+                Math.abs(this.position.y - landforms[i].position.y) <= (MS + (MS / 3 * 2) / 2)) {
+                this.delete(bullets);
+            }
+        }
 
         for (const [key, value] of users.entries()) {
             if (value != this.owner) {
@@ -92,7 +121,19 @@ class Bullet {
 
         if (getDistance(this.spawnPosition, this.position) > this.range)
             this.delete(bullets);
+
+        this.position.x = Math.round(this.position.x);
+
+
+        this.position.y = Math.round(this.position.y);
     }
 }
 
-module.exports = { Player };
+class Rock {
+    constructor(x, y) {
+        this.position = { x: Math.round(x), y: Math.round(y) };
+        this.type = 'rock';
+    }
+}
+
+module.exports = { Player, Rock };
