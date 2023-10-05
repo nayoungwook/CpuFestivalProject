@@ -107,6 +107,7 @@ function sendGamePackets() {
         userData.fullHealth = value.fullHealth;
         userData.key = value.key;
         userData.name = value.name;
+        userData.bush = value.bush;
 
         data.users.push(userData);
     }
