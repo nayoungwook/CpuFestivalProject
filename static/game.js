@@ -54,6 +54,9 @@ class GameScene extends Scene {
 
         this.rockImage = new Image();
         this.rockImage.src = 'assets/rock.png';
+
+        this.bushImage = new Image();
+        this.bushImage.src = 'assets/bush.png';
     }
 
     initializeGame = () => {
@@ -246,7 +249,15 @@ class GameScene extends Scene {
             textureCoord.renderPosition.x = Math.round(textureCoord.renderPosition.x);
             textureCoord.renderPosition.y = Math.round(textureCoord.renderPosition.y);
 
-            ctx.drawImage(this.rockImage, textureCoord.renderPosition.x - textureCoord.renderWidth / 2,
+            let landformImage = null;
+            if (landforms[i].type == 'rock')
+                landformImage = this.rockImage;
+            else if (landforms[i].type == 'bush')
+                landformImage = this.bushImage;
+
+            if (landformImage == null) continue;
+
+            ctx.drawImage(landformImage, textureCoord.renderPosition.x - textureCoord.renderWidth / 2,
                 textureCoord.renderPosition.y - textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
         }
     }

@@ -40,9 +40,11 @@ class Player {
 
     checkCollision = (landforms, MS) => {
         for (let i = 0; i < landforms.length; i++) {
-            if (Math.abs(this.targetPosition.x - landforms[i].position.x) <= (MS + MS / 2) &&
-                Math.abs(this.targetPosition.y - landforms[i].position.y) <= (MS + MS / 2)) {
-                return landforms[i];
+            if (landforms[i].type == 'rock') {
+                if (Math.abs(this.targetPosition.x - landforms[i].position.x) <= (MS + MS / 2) &&
+                    Math.abs(this.targetPosition.y - landforms[i].position.y) <= (MS + MS / 2)) {
+                    return landforms[i];
+                }
             }
         }
         return null;
@@ -103,9 +105,11 @@ class Bullet {
         this.position.y += Math.sin(this.dir) * this.speed;
 
         for (let i = 0; i < landforms.length; i++) {
-            if (Math.abs(this.position.x - landforms[i].position.x) <= (MS + (MS / 3 * 2) / 2) &&
-                Math.abs(this.position.y - landforms[i].position.y) <= (MS + (MS / 3 * 2) / 2)) {
-                this.delete(bullets);
+            if (landforms[i].type == 'rock') {
+                if (Math.abs(this.position.x - landforms[i].position.x) <= (MS + (MS / 3 * 2) / 2) &&
+                    Math.abs(this.position.y - landforms[i].position.y) <= (MS + (MS / 3 * 2) / 2)) {
+                    this.delete(bullets);
+                }
             }
         }
 
@@ -136,4 +140,11 @@ class Rock {
     }
 }
 
-module.exports = { Player, Rock };
+class Bush {
+    constructor(x, y) {
+        this.position = { x: Math.round(x), y: Math.round(y) };
+        this.type = 'bush';
+    }
+}
+
+module.exports = { Player, Rock, Bush };

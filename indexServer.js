@@ -6,10 +6,12 @@ const { Server } = require("socket.io");
 const io = new Server(server);
 const fs = require('fs');
 
-const { Player, Rock } = require('./server/gameServer');
+const { Player, Rock, Bush } = require('./server/gameServer');
 
 app.use(express.static('static'));
 app.use(express.static('static/assets'));
+
+// TODO : 자기장 만들기
 
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/static/index.html');
@@ -24,6 +26,9 @@ var landforms = [];
 function createLandforms() {
     for (let i = 0; i < 20; i++) {
         landforms.push(new Rock(Math.round(Math.random() * 8000) - 4000, Math.round(Math.random() * 8000) - 4000));
+    }
+    for (let i = 0; i < 20; i++) {
+        landforms.push(new Bush(Math.round(Math.random() * 8000) - 4000, Math.round(Math.random() * 8000) - 4000));
     }
 }
 
