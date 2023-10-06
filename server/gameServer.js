@@ -13,7 +13,7 @@ class Player {
         this.xv = 0;
         this.yv = 0;
 
-
+        this.bush = null;
         this.shotTimer = 0;
 
         this.fullHealth = 50;
@@ -23,7 +23,7 @@ class Player {
             moveSpeed: 5,
             shotSpeed: 0.05,
             shotRange: 850,
-            bulletSpeed: 40,
+            bulletSpeed: 55,
             damage: 2,
         }
     }
@@ -65,6 +65,16 @@ class Player {
             }
         }
 
+        this.bush = null;
+        for (let i = 0; i < landforms.length; i++) {
+            if (landforms[i].type == 'bush') {
+                if (Math.abs(this.targetPosition.x - landforms[i].position.x) <= (MS + MS / 2) &&
+                    Math.abs(this.targetPosition.y - landforms[i].position.y) <= (MS + MS / 2)) {
+                    this.bush = landforms[i];
+                }
+            }
+        }
+
         this.position.x += (this.targetPosition.x - this.position.x) / 5;
         this.position.y += (this.targetPosition.y - this.position.y) / 5;
 
@@ -94,6 +104,7 @@ class Bullet {
         this.speed = owner.status.bulletSpeed;
         this.range = owner.status.shotRange;
         this.damage = owner.status.damage;
+        this.bulletRadius = 120 / 2;
     }
 
     delete = (bullets) => {
@@ -106,8 +117,8 @@ class Bullet {
 
         for (let i = 0; i < landforms.length; i++) {
             if (landforms[i].type == 'rock') {
-                if (Math.abs(this.position.x - landforms[i].position.x) <= (MS + (MS / 3 * 2) / 2) &&
-                    Math.abs(this.position.y - landforms[i].position.y) <= (MS + (MS / 3 * 2) / 2)) {
+                if (Math.abs(this.position.x - landforms[i].position.x) <= (MS + this.bulletRadius / 2) &&
+                    Math.abs(this.position.y - landforms[i].position.y) <= (MS + this.bulletRadius / 2)) {
                     this.delete(bullets);
                 }
             }
@@ -115,8 +126,8 @@ class Bullet {
 
         for (const [key, value] of users.entries()) {
             if (value != this.owner) {
-                if (Math.abs(this.position.x - value.position.x) <= (MS / 2 + (MS / 3 * 2) / 2) &&
-                    Math.abs(this.position.y - value.position.y) <= (MS / 2 + (MS / 3 * 2) / 2)) {
+                if (Math.abs(this.position.x - value.position.x) <= (MS / 2 + this.bulletRadius / 2) &&
+                    Math.abs(this.position.y - value.position.y) <= (MS / 2 + this.bulletRadius / 2)) {
                     value.health -= this.damage;
                     this.delete(bullets);
                 }

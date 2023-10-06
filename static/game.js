@@ -22,6 +22,8 @@ var globalPacket = null;
 var startedTouches = [];
 var touches = [];
 
+var bush = null;
+
 addEventListener('touchstart', (e) => {
     startedTouches = e.touches;
     touches = e.touches;
@@ -192,6 +194,24 @@ class GameScene extends Scene {
 
     renderPlayers = () => {
         for (let i = 0; i < users.length; i++) {
+            if (users[i] == myPlayer)
+                bush = users[i].bush;
+
+            let playerBush = users[i].bush;
+            let playerInBush = users[i].bush != null;
+            let myPlayerInBush = bush != null;
+
+            if (playerInBush) {
+                if (myPlayerInBush) {
+                    if (users[i] != myPlayer) {
+                        if (Mathf.getDistance(playerBush.position, bush.position) > 2)
+                            continue;
+                    }
+                } else {
+                    continue;
+                }
+            }
+
             ctx.font = "bold 20px blackHanSans";
             ctx.textAlign = 'center';
 
@@ -203,8 +223,13 @@ class GameScene extends Scene {
             ctx.fillStyle = 'rgb(39, 39, 54)';
             ctx.fillText(users[i].name, textureCoord.renderPosition.x, textureCoord.renderPosition.y - MS / 3 * 4);
 
+            if (playerInBush)
+                ctx.globalAlpha = 0.5;
+
             ctx.drawImage(this.characterImage, textureCoord.renderPosition.x - textureCoord.renderWidth / 2,
                 textureCoord.renderPosition.y - textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
+
+            ctx.globalAlpha = 1;
 
             ctx.fillStyle = 'rgb(39, 39, 54)';
             ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS, MS, MS / 5);
@@ -219,7 +244,7 @@ class GameScene extends Scene {
     renderBullets = () => {
         for (let i = 0; i < bullets.length; i++) {
 
-            let textureCoord = Mathf.getRenderInfo(bullets[i].position, MS / 3 * 2, MS / 3 * 2);
+            let textureCoord = Mathf.getRenderInfo(bullets[i].position, bullets[i].bulletRadius, bullets[i].bulletRadius);
 
             textureCoord.renderPosition.x = Math.round(textureCoord.renderPosition.x);
             textureCoord.renderPosition.y = Math.round(textureCoord.renderPosition.y);
@@ -283,9 +308,9 @@ class GameScene extends Scene {
         ctx.fillStyle = 'rgb(120, 255, 150)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        this.renderBullets();
         this.renderLandforms();
         this.renderPlayers();
-        this.renderBullets();
 
         this.renderDebug(); // TODO : disable this debug function
 
@@ -300,7 +325,16 @@ class GameScene extends Scene {
 function findMyPlayer() {
     for (let i = 0; i < users.length; i++) {
         if (users[i].key == document.cookie) {
+            let backupHealth = 0;
+            if (myPlayer != null)
+                backupHealth = myPlayer.health;
+
             myPlayer = users[i];
+
+            if (myPlayer != null && myPlayer.health != backupHealth) {
+                Camera.position.x += Math.round(Math.random() * 30) - 15;
+                Camera.position.y += Math.round(Math.random() * 30) - 15;
+            }
         }
     }
 }
@@ -324,4 +358,4 @@ socket.on('playerDied', (packet) => {
         die = true;
         console.log('die!');
     }
-})
+});
