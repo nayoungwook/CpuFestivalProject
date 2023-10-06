@@ -17,7 +17,7 @@ app.get('/', (req, res) => {
     res.sendFile(__dirname + '/static/index.html');
 });
 
-const MS = 140;
+const MS = 100;
 const DAMAGE_CIRCLE_RADIUS = 5000;
 
 var damageCircle = { position: { x: 0, y: 0 }, radius: DAMAGE_CIRCLE_RADIUS };

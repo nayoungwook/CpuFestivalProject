@@ -64,6 +64,12 @@ class GameScene extends Scene {
 
         this.bushImage = new Image();
         this.bushImage.src = 'assets/bush.png';
+
+        this.damageArea = new Image();
+        this.damageArea.src = 'assets/damageArea.png';
+
+        this.field = new Image();
+        this.field.src = 'assets/field.png';
     }
 
     initializeGame = () => {
@@ -305,8 +311,9 @@ class GameScene extends Scene {
         let coord = Mathf.getRenderInfo(damageCircle.position, damageCircle.radius, damageCircle.radius);
 
         _ctx.clearRect(0, 0, canvas.width, canvas.height);
-        _ctx.fillStyle = "rgba(100, 105, 255, 0.5)";
-        _ctx.fillRect(0, 0, canvas.width, canvas.height);
+        _ctx.globalAlpha = 0.8;
+        _ctx.drawImage(this.damageArea, 0, 0, canvas.width, canvas.height);
+        _ctx.globalAlpha = 1;
 
         _ctx.beginPath();
         _ctx.fillStyle = "rgba(0, 0, 0, 1)";
@@ -318,9 +325,16 @@ class GameScene extends Scene {
         ctx.drawImage(this.damageCircleImage, 0, 0, canvas.width, canvas.height);
     }
 
+    renderField = () => {
+        let coord = Mathf.getRenderInfo(new Vector(-5000, -5000), 5000 * 2, 5000 * 2);
+        ctx.drawImage(this.field, coord.renderPosition.x, coord.renderPosition.y, coord.renderWidth, coord.renderHeight);
+    }
+
     render = () => {
         ctx.fillStyle = 'rgb(120, 255, 150)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        this.renderField();
 
         this.renderBullets();
         this.renderLandforms();
@@ -360,7 +374,34 @@ socket.on('gameData', (packet) => {
     MS = packet.gameData.MS;
 
     //    usersCache = users;
+    usersCache = packet.users;
     users = packet.users;
+    /*
+        let _curUsers = new Map();
+    
+        for (let i = 0; i < users.length; i++) {
+            _curUsers.set(users[i].key, users[i]);
+        }
+    
+        for (let i = 0; i < usersCache.length; i++) {
+            if (_curUsers.has(usersCache[i].key)) {
+                let _tUser = _curUsers.get(usersCache[i].key);
+    
+                _tUser.position.x += (usersCache[i].position.x - _tUser.position.x) / 10;
+                _tUser.position.y += (usersCache[i].position.y - _tUser.position.y) / 10;
+            } else {
+                _curUsers.set(usersCache[i].key, usersCache[i]);
+            }
+        }
+    
+        let updatedUsers = [];
+        for (const [key, value] of _curUsers.entries()) {
+            updatedUsers.push(value);
+        }
+    
+        users = updatedUsers;
+    */
+
     landforms = packet.landforms;
 
     bullets = packet.bullets;

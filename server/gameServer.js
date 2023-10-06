@@ -20,7 +20,7 @@ class Player {
         this.health = this.fullHealth;
 
         this.status = {
-            moveSpeed: 5,
+            moveSpeed: 4,
             shotSpeed: 0.05,
             shotRange: 850,
             bulletSpeed: 55,
