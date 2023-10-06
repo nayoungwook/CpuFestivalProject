@@ -13,7 +13,8 @@ var usersCache = [];
 var bullets = [];
 var landforms = [];
 
-var damageCircle = { x: 0, y: 0, r: 0 };
+var damageCircle = { position: { x: 0, y: 0 }, radius: 50000 };
+var targetDamageCircle;
 
 var myPlayer = undefined;
 var zoomRatio = 0;
@@ -49,6 +50,8 @@ class GameScene extends Scene {
         this.frame = 0;
         this.ping = 0;
         this.lastUpdate = Date.now();
+
+        this.damageCircleImage = document.createElement('canvas');
 
         this.characterImage = new Image();
         this.characterImage.src = 'assets/character.png';
@@ -101,6 +104,10 @@ class GameScene extends Scene {
     tick = () => {
         const start = Date.now();
 
+        damageCircle.position.x += (targetDamageCircle.position.x - damageCircle.position.x) / 10;
+        damageCircle.position.y += (targetDamageCircle.position.y - damageCircle.position.y) / 10;
+        damageCircle.radius += (targetDamageCircle.radius - damageCircle.radius) / 10;
+
         socket.emit("ping", () => {
             const duration = Date.now() - start;
             this.ping = duration;
@@ -108,6 +115,9 @@ class GameScene extends Scene {
 
         ctx = App.ctx;
         canvas = App.canvas;
+
+        this.damageCircleImage.width = canvas.width;
+        this.damageCircleImage.height = canvas.height;
 
         var now = Date.now();
         var dt = now - this.lastUpdate;
@@ -266,7 +276,6 @@ class GameScene extends Scene {
 
         ctx.fillStyle = 'rgb(250, 150, 120)';
         ctx.fillText('사망하셨습니다.', canvas.width / 2, canvas.height / 3);
-
     }
 
     renderLandforms = () => {
@@ -290,18 +299,23 @@ class GameScene extends Scene {
     }
 
     renderDamageCircle = () => {
-        ctx.fillStyle = 'rgb(100, 150, 255)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (damageCircle == null) return;
 
-        let coord = Mathf.getRenderInfo(damageCircle.x, damageCircle.y, damageCircle.r, damageCircle.r);
+        let _ctx = this.damageCircleImage.getContext('2d');
+        let coord = Mathf.getRenderInfo(damageCircle.position, damageCircle.radius, damageCircle.radius);
 
-        ctx.fillStyle = 'rgba(0, 0, 0, 0)';
-        ctx.globalCompositeOperation = 'destination-out';
-        ctx.beginPath();
-        ctx.arc(coord.renderPosition.x, coord.renderPosition.y, coord.renderWidth, 0, 2 * Math.PI);
-        ctx.fill();
+        _ctx.clearRect(0, 0, canvas.width, canvas.height);
+        _ctx.fillStyle = "rgba(100, 105, 255, 0.5)";
+        _ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.globalCompositeOperation = 'source-over';
+        _ctx.beginPath();
+        _ctx.fillStyle = "rgba(0, 0, 0, 1)";
+        _ctx.globalCompositeOperation = 'destination-out';
+        _ctx.arc(coord.renderPosition.x, coord.renderPosition.y, coord.renderWidth, 0, Math.PI * 2);
+        _ctx.fill();
+
+        _ctx.globalCompositeOperation = 'source-over';
+        ctx.drawImage(this.damageCircleImage, 0, 0, canvas.width, canvas.height);
     }
 
     render = () => {
@@ -314,11 +328,12 @@ class GameScene extends Scene {
 
         this.renderDebug(); // TODO : disable this debug function
 
+        this.renderDamageCircle();
+
         this.renderJoystick(this.padPosition, this.joystickTouch);
         this.renderJoystick(this.gunPadPosition, this.gunJoystickTouch);
 
         this.renderDieScreen();
-        this.renderDamageCircle();
     }
 }
 
@@ -350,7 +365,7 @@ socket.on('gameData', (packet) => {
 
     bullets = packet.bullets;
 
-    damageCircle = packet.damageCircle;
+    targetDamageCircle = packet.damageCircle;
 });
 
 socket.on('playerDied', (packet) => {

@@ -28,9 +28,12 @@ class Player {
         }
     }
 
-    tick = (users, io) => {
+    tick = (users, damageCircle, io) => {
         if (this.shotTimer < 1) {
             this.shotTimer += this.status.shotSpeed;
+        }
+        if (getDistance(damageCircle.position, this.position) > damageCircle.radius) {
+            this.health -= 0.1;
         }
         if (this.health <= 0) {
             io.emit('playerDied', { key: this.key });
@@ -75,8 +78,8 @@ class Player {
             }
         }
 
-        this.position.x += (this.targetPosition.x - this.position.x) / 5;
-        this.position.y += (this.targetPosition.y - this.position.y) / 5;
+        this.position.x += (this.targetPosition.x - this.position.x) / 10;
+        this.position.y += (this.targetPosition.y - this.position.y) / 10;
 
         this.position.x = Math.round(this.position.x);
         this.position.y = Math.round(this.position.y);

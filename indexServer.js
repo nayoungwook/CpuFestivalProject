@@ -7,18 +7,20 @@ const io = new Server(server);
 const fs = require('fs');
 
 const { Player, Rock, Bush } = require('./server/gameServer');
+const { deflateRaw } = require('zlib');
 
 app.use(express.static('static'));
 app.use(express.static('static/assets'));
 
-// TODO : 자기장 만들기
 
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/static/index.html');
 });
 
 const MS = 140;
+const DAMAGE_CIRCLE_RADIUS = 5000;
 
+var damageCircle = { position: { x: 0, y: 0 }, radius: DAMAGE_CIRCLE_RADIUS };
 var users = new Map();
 var bullets = [];
 var landforms = [];
@@ -84,7 +86,7 @@ function updateGame() {
     }
 
     for (const [key, value] of users.entries()) {
-        value.tick(users, io);
+        value.tick(users, damageCircle, io);
     }
 }
 
@@ -94,6 +96,8 @@ function sendGamePackets() {
     data.users = [];
     data.bullets = bullets;
     data.landforms = landforms;
+
+    data.damageCircle = damageCircle;
 
     var gameData = new Object();
     gameData.MS = MS;
@@ -115,6 +119,16 @@ function sendGamePackets() {
     io.emit('gameData', data);
 }
 
+function decreaseDamageCircle() {
+
+    damageCircle.position.x += Math.round(Math.random() * 200) - 100;
+    damageCircle.position.y += Math.round(Math.random() * 200) - 100;
+    damageCircle.radius -= 200;
+
+    if (damageCircle.radius > 0)
+        setTimeout(() => { decreaseDamageCircle() }, 1000 * 5);
+}
+
 function update() {
     updateGame();
     sendGamePackets();
@@ -124,4 +138,5 @@ server.listen(3000, async () => {
     console.log('listening on *:3000');
 });
 
+decreaseDamageCircle();
 setInterval(update, 1000 / 60);
