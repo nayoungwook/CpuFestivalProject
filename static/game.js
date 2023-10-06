@@ -13,6 +13,8 @@ var usersCache = [];
 var bullets = [];
 var landforms = [];
 
+var damageCircle = { x: 0, y: 0, r: 0 };
+
 var myPlayer = undefined;
 var zoomRatio = 0;
 var globalPacket = null;
@@ -262,6 +264,21 @@ class GameScene extends Scene {
         }
     }
 
+    renderDamageCircle = () => {
+        ctx.fillStyle = 'rgb(100, 150, 255)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        let coord = Mathf.getRenderInfo(damageCircle.x, damageCircle.y, damageCircle.r, damageCircle.r);
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0)';
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.beginPath();
+        ctx.arc(coord.renderPosition.x, coord.renderPosition.y, coord.renderWidth, 0, 2 * Math.PI);
+        ctx.fill();
+
+        ctx.globalCompositeOperation = 'source-over';
+    }
+
     render = () => {
         ctx.fillStyle = 'rgb(120, 255, 150)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -276,6 +293,7 @@ class GameScene extends Scene {
         this.renderJoystick(this.gunPadPosition, this.gunJoystickTouch);
 
         this.renderDieScreen();
+        this.renderDamageCircle();
     }
 }
 
@@ -297,6 +315,8 @@ socket.on('gameData', (packet) => {
     landforms = packet.landforms;
 
     bullets = packet.bullets;
+
+    damageCircle = packet.damageCircle;
 });
 
 socket.on('playerDied', (packet) => {
