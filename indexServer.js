@@ -4,10 +4,8 @@ const http = require('http');
 const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
-const fs = require('fs');
 
 const { Player, Rock, Bush } = require('./server/gameServer');
-const { deflateRaw } = require('zlib');
 
 app.use(express.static('static'));
 app.use(express.static('static/assets'));
@@ -114,6 +112,9 @@ function sendGamePackets() {
         userData.bush = value.bush;
         userData.visualDir = value.visualDir;
         userData.reboundValue = value.reboundValue;
+        userData.gun = value.gun;
+        userData.gunPosition = value.gunPosition;
+        userData.gunSize = value.gunSize;
 
         data.users.push(userData);
     }

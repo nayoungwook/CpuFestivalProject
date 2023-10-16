@@ -2,6 +2,24 @@ function getDistance(v1, v2) {
     return Math.sqrt((v2.x - v1.x) ** 2 + (v2.y - v1.y) ** 2);
 }
 
+const pistol = {
+    name: 'pistol',
+    shotSpeed: 0.05,
+    shotRange: 850,
+    bulletSpeed: 35,
+    damage: 2,
+    gap: 0,
+};
+
+const machineGun = {
+    name: 'machineGun',
+    shotSpeed: 0.15,
+    shotRange: 850,
+    bulletSpeed: 40,
+    damage: 1.5,
+    gap: 50 / 5,
+};
+
 class Player {
     constructor(key, name) {
         this.name = name;
@@ -9,6 +27,12 @@ class Player {
 
         this.position = { x: 0, y: 0 };
         this.targetPosition = { x: 0, y: 0 };
+
+        this.gunPosition = { x: 0, y: 0 };
+
+        this.gunSize = {
+            width: 0, height: 0
+        }
 
         this.xv = 0;
         this.yv = 0;
@@ -22,20 +46,18 @@ class Player {
         this.dir = 0;
         this.visualDir = 0;
 
+        this.gun = machineGun;
+
         this.status = {
             moveSpeed: 4,
-            gun: {
-                shotSpeed: 0.05,
-                shotRange: 850,
-                bulletSpeed: 20,
-                damage: 2,
-            },
+            gun: this.gun,
         }
 
         this.reboundValue = 0;
     }
 
     tick = (users, damageCircle, io) => {
+
         this.reboundValue += (0 - this.reboundValue) / 10;
 
         if (this.shotTimer < 1) {
@@ -81,6 +103,28 @@ class Player {
 
         this.visualDir = this.dir;
 
+        if (this.gun.name == 'pistol') {
+            this.gunPosition = {
+                x: this.position.x + Math.cos(this.visualDir) * (MS / 2 + this.reboundValue),
+                y: this.position.y + Math.sin(this.visualDir) * (MS / 2 + this.reboundValue),
+            }
+
+            this.gunSize = {
+                width: MS, height: MS
+            }
+        }
+
+        if (this.gun.name == 'machineGun') {
+            this.gunPosition = {
+                x: this.position.x + Math.cos(this.visualDir) * (this.reboundValue),
+                y: this.position.y + Math.sin(this.visualDir) * (this.reboundValue),
+            }
+
+            this.gunSize = {
+                width: MS * 8.4 / 5, height: MS * 5 / 5
+            }
+        }
+
         this.bush = null;
         for (let i = 0; i < landforms.length; i++) {
             if (landforms[i].type == 'bush') {
@@ -119,9 +163,9 @@ class Player {
 class Bullet {
     constructor(owner, dir, MS) {
         this.owner = owner;
-        this.position = { x: owner.position.x, y: owner.position.y };
-        this.spawnPosition = { x: owner.position.x, y: owner.position.y };
         this.dir = dir;
+        this.position = { x: owner.gunPosition.x, y: owner.gunPosition.y };
+        this.spawnPosition = { x: this.position.x, y: this.position.y };
         this.speed = owner.status.gun.bulletSpeed;
         this.range = owner.status.gun.shotRange;
         this.damage = owner.status.gun.damage;

@@ -72,6 +72,9 @@ class GameScene extends Scene {
 
         this.pistolHandImage = new Image();
         this.pistolHandImage.src = 'assets/pistolWithHands.png';
+
+        this.machineGunHandImage = new Image();
+        this.machineGunHandImage.src = 'assets/machineGunWithHands.png';
     }
 
     initializeGame = () => {
@@ -248,11 +251,23 @@ class GameScene extends Scene {
             ctx.rotate(users[i].visualDir);
 
             ctx.drawImage(this.characterImage, -textureCoord.renderWidth / 2, -textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
+            ctx.restore();
 
-            ctx.rotate(-users[i].visualDir);
-            ctx.translate(Math.cos(users[i].visualDir) * (MS / 2 + users[i].reboundValue), Math.sin(users[i].visualDir) * (MS / 2 + users[i].reboundValue));
+            if (users[i].gunSize == null || users[i].gunSize == 0)
+                continue;
+
+            let gunCoord = Mathf.getRenderInfo(users[i].gunPosition, users[i].gunSize.width, users[i].gunSize.height);
+
+            ctx.save();
+            ctx.translate(gunCoord.renderPosition.x, gunCoord.renderPosition.y);
             ctx.rotate(users[i].visualDir);
-            ctx.drawImage(this.pistolHandImage, -textureCoord.renderWidth / 2, -textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
+
+            if (users[i].gun.name == 'pistol') {
+                ctx.drawImage(this.pistolHandImage, -gunCoord.renderWidth / 2, -gunCoord.renderHeight / 2, gunCoord.renderWidth, gunCoord.renderHeight);
+            }
+            else if (users[i].gun.name == 'machineGun') {
+                ctx.drawImage(this.machineGunHandImage, -gunCoord.renderWidth / 2, -gunCoord.renderHeight / 2, gunCoord.renderWidth, gunCoord.renderHeight);
+            }
 
             ctx.restore();
 
