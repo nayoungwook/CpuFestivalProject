@@ -11,6 +11,8 @@ var users = [];
 var usersCache = [];
 
 var bullets = [];
+var particles = [];
+
 var landforms = [];
 
 var damageCircle = { position: { x: 0, y: 0 }, radius: 50000 };
@@ -56,9 +58,6 @@ class GameScene extends Scene {
         this.characterImage = new Image();
         this.characterImage.src = 'assets/character.png';
 
-        this.bulletImage = new Image();
-        this.bulletImage.src = 'assets/bullet.png';
-
         this.rockImage = new Image();
         this.rockImage.src = 'assets/rock.png';
 
@@ -70,6 +69,9 @@ class GameScene extends Scene {
 
         this.field = new Image();
         this.field.src = 'assets/field.png';
+
+        this.pistolHandImage = new Image();
+        this.pistolHandImage.src = 'assets/pistolWithHands.png';
     }
 
     initializeGame = () => {
@@ -171,7 +173,6 @@ class GameScene extends Scene {
     }
 
     renderJoystick = (padPosition, touch) => {
-
         ctx.fillStyle = 'rgba(150, 150, 150, 0.5)';
         ctx.beginPath();
         let padSize = 100 * zoomRatio;
@@ -242,32 +243,42 @@ class GameScene extends Scene {
             if (playerInBush)
                 ctx.globalAlpha = 0.5;
 
-            ctx.drawImage(this.characterImage, textureCoord.renderPosition.x - textureCoord.renderWidth / 2,
-                textureCoord.renderPosition.y - textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
+            ctx.save();
+            ctx.translate(textureCoord.renderPosition.x, textureCoord.renderPosition.y);
+            ctx.rotate(users[i].visualDir);
+
+            ctx.drawImage(this.characterImage, -textureCoord.renderWidth / 2, -textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
+
+            ctx.rotate(-users[i].visualDir);
+            ctx.translate(Math.cos(users[i].visualDir) * (MS / 2 + users[i].reboundValue), Math.sin(users[i].visualDir) * (MS / 2 + users[i].reboundValue));
+            ctx.rotate(users[i].visualDir);
+            ctx.drawImage(this.pistolHandImage, -textureCoord.renderWidth / 2, -textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
+
+            ctx.restore();
 
             ctx.globalAlpha = 1;
-
-            ctx.fillStyle = 'rgb(39, 39, 54)';
-            ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS, MS, MS / 5);
-
-            ctx.fillStyle = 'rgb(255, 100, 154)';
-            if (users[i].fullHealth != 0)
-                ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS, (MS * users[i].health) / users[i].fullHealth, MS / 5);
-
         }
     }
 
     renderBullets = () => {
         for (let i = 0; i < bullets.length; i++) {
-
             let textureCoord = Mathf.getRenderInfo(bullets[i].position, bullets[i].bulletRadius, bullets[i].bulletRadius);
 
             textureCoord.renderPosition.x = Math.round(textureCoord.renderPosition.x);
             textureCoord.renderPosition.y = Math.round(textureCoord.renderPosition.y);
 
-            ctx.fillStyle = 'rgb(250, 255, 120)';
-            ctx.drawImage(this.bulletImage, textureCoord.renderPosition.x - textureCoord.renderWidth / 2,
-                textureCoord.renderPosition.y - textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
+            ctx.beginPath();
+            ctx.fillStyle = 'rgb(243, 245, 140)';
+            ctx.arc(textureCoord.renderPosition.x - textureCoord.renderWidth / 2, textureCoord.renderPosition.y - textureCoord.renderHeight / 2, textureCoord.renderWidth / 2, 0, 2 * Math.PI);
+            ctx.fill();
+
+            for (let j = 0; j < 20; j++) {
+                ctx.beginPath();
+                ctx.fillStyle = `rgba(243, 245, 140, ${(255 - j * 13) / 255})`;
+                ctx.arc(textureCoord.renderPosition.x - textureCoord.renderWidth / 2 + Math.cos(Math.PI + bullets[i].dir) * 4 * j
+                    , textureCoord.renderPosition.y - textureCoord.renderHeight / 2 + Math.sin(Math.PI + bullets[i].dir) * 4 * j, textureCoord.renderWidth / 2, 0, 2 * Math.PI);
+                ctx.fill();
+            }
         }
     }
 
@@ -330,6 +341,48 @@ class GameScene extends Scene {
         ctx.drawImage(this.field, coord.renderPosition.x, coord.renderPosition.y, coord.renderWidth, coord.renderHeight);
     }
 
+    renderUI = () => {
+        for (let i = 0; i < users.length; i++) {
+            if (users[i] == myPlayer)
+                bush = users[i].bush;
+
+            let playerBush = users[i].bush;
+            let playerInBush = users[i].bush != null;
+            let myPlayerInBush = bush != null;
+
+            if (playerInBush) {
+                if (myPlayerInBush) {
+                    if (users[i] != myPlayer) {
+                        if (Mathf.getDistance(playerBush.position, bush.position) > 2)
+                            continue;
+                    }
+                } else {
+                    continue;
+                }
+            }
+            let textureCoord = Mathf.getRenderInfo(users[i].position, MS, MS);
+
+            ctx.font = "bold 20px blackHanSans";
+            ctx.textAlign = 'center';
+
+            ctx.fillStyle = 'rgb(39, 39, 54)';
+            ctx.fillText(users[i].name, textureCoord.renderPosition.x, textureCoord.renderPosition.y - MS / 3 * 4);
+
+            ctx.fillStyle = 'rgb(39, 39, 54)';
+            ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS, MS, MS / 5);
+
+            ctx.fillStyle = 'rgb(255, 100, 154)';
+            if (users[i].fullHealth != 0)
+                ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS, (MS * users[i].health) / users[i].fullHealth, MS / 5);
+        }
+    }
+
+    renderParticles = () => {
+        for (let i = 0; i < particles.length; i++) {
+            particles[i].render();
+        }
+    }
+
     render = () => {
         ctx.fillStyle = 'rgb(120, 255, 150)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -340,9 +393,12 @@ class GameScene extends Scene {
         this.renderLandforms();
         this.renderPlayers();
 
-        this.renderDebug(); // TODO : disable this debug function
+        this.renderParticles();
 
         this.renderDamageCircle();
+
+        this.renderUI();
+        this.renderDebug(); // TODO : disable this debug function
 
         this.renderJoystick(this.padPosition, this.joystickTouch);
         this.renderJoystick(this.gunPadPosition, this.gunJoystickTouch);
@@ -414,4 +470,9 @@ socket.on('playerDied', (packet) => {
         die = true;
         console.log('die!');
     }
+});
+
+socket.on('particleBullet', (packet) => {
+    for (let i = 0; i < Math.round(Math.random() * 5) + 4; i++)
+        particles.push(new BulletParticle(packet.position.x, packet.position.y, packet.radius));
 });

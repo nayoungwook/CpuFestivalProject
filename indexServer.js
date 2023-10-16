@@ -75,14 +75,14 @@ io.on('connection', (socket) => {
         if (users.has(packet.key)) {
             // update user with packet
             users.get(packet.key).movement({ joystickDir: packet.joystickDir, move: packet.move }, landforms, MS);
-            users.get(packet.key).shotUpdate({ gunDir: packet.gunDir, shot: packet.shot }, bullets);
+            users.get(packet.key).shotUpdate({ gunDir: packet.gunDir, shot: packet.shot }, bullets, MS);
         }
     });
 });
 
 function updateGame() {
     for (let i = 0; i < bullets.length; i++) {
-        bullets[i].movement(bullets, users, landforms, MS);
+        bullets[i].movement(bullets, users, landforms, MS, io);
     }
 
     for (const [key, value] of users.entries()) {
@@ -112,6 +112,8 @@ function sendGamePackets() {
         userData.key = value.key;
         userData.name = value.name;
         userData.bush = value.bush;
+        userData.visualDir = value.visualDir;
+        userData.reboundValue = value.reboundValue;
 
         data.users.push(userData);
     }

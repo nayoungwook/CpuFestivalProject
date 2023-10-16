@@ -19,18 +19,27 @@ class Player {
         this.fullHealth = 50;
         this.health = this.fullHealth;
 
+        this.dir = 0;
+        this.visualDir = 0;
+
         this.status = {
             moveSpeed: 4,
-            shotSpeed: 0.05,
-            shotRange: 850,
-            bulletSpeed: 55,
-            damage: 2,
+            gun: {
+                shotSpeed: 0.05,
+                shotRange: 850,
+                bulletSpeed: 20,
+                damage: 2,
+            },
         }
+
+        this.reboundValue = 0;
     }
 
     tick = (users, damageCircle, io) => {
+        this.reboundValue += (0 - this.reboundValue) / 10;
+
         if (this.shotTimer < 1) {
-            this.shotTimer += this.status.shotSpeed;
+            this.shotTimer += this.status.gun.shotSpeed;
         }
         if (getDistance(damageCircle.position, this.position) > damageCircle.radius) {
             this.health -= 0.1;
@@ -57,6 +66,8 @@ class Player {
         if (packet.move) {
             let backupX = this.targetPosition.x;
             this.targetPosition.x += Math.round(Math.cos(packet.joystickDir) * this.status.moveSpeed);
+            this.dir = packet.joystickDir;
+
             if (this.checkCollision(landforms, MS) != null) {
                 this.targetPosition.x = backupX;
             }
@@ -67,6 +78,8 @@ class Player {
                 this.targetPosition.y = backupY;
             }
         }
+
+        this.visualDir = this.dir;
 
         this.bush = null;
         for (let i = 0; i < landforms.length; i++) {
@@ -85,36 +98,44 @@ class Player {
         this.position.y = Math.round(this.position.y);
     }
 
-    shot = (packet, bullets) => {
-        bullets.push(new Bullet(this, packet.gunDir));
+    shot = (packet, bullets, MS) => {
+        this.reboundValue = -MS / 10;
+        bullets.push(new Bullet(this, packet.gunDir, MS));
         this.shotTimer = 0;
     }
 
-    shotUpdate = (packet, bullets) => {
+    shotUpdate = (packet, bullets, MS) => {
         let ableToShot = this.shotTimer >= 1 && packet.shot;
+        if (packet.shot) {
+            this.visualDir = packet.gunDir;
+            this.dir = packet.gunDir;
+        }
         if (ableToShot) {
-            this.shot(packet, bullets);
+            this.shot(packet, bullets, MS);
         }
     }
 }
 
 class Bullet {
-    constructor(owner, dir) {
+    constructor(owner, dir, MS) {
         this.owner = owner;
         this.position = { x: owner.position.x, y: owner.position.y };
         this.spawnPosition = { x: owner.position.x, y: owner.position.y };
         this.dir = dir;
-        this.speed = owner.status.bulletSpeed;
-        this.range = owner.status.shotRange;
-        this.damage = owner.status.damage;
-        this.bulletRadius = 120 / 2;
+        this.speed = owner.status.gun.bulletSpeed;
+        this.range = owner.status.gun.shotRange;
+        this.damage = owner.status.gun.damage;
+        this.bulletRadius = 30 / 2;
+
+        this.position.x += Math.cos(this.dir) * MS * 2;
+        this.position.y += Math.sin(this.dir) * MS * 2;
     }
 
     delete = (bullets) => {
         bullets.splice(bullets.indexOf(this), 1);
     }
 
-    movement = (bullets, users, landforms, MS) => {
+    movement = (bullets, users, landforms, MS, io) => {
         this.position.x += Math.cos(this.dir) * this.speed;
         this.position.y += Math.sin(this.dir) * this.speed;
 
@@ -122,6 +143,7 @@ class Bullet {
             if (landforms[i].type == 'rock') {
                 if (Math.abs(this.position.x - landforms[i].position.x) <= (MS + this.bulletRadius / 2) &&
                     Math.abs(this.position.y - landforms[i].position.y) <= (MS + this.bulletRadius / 2)) {
+                    io.emit('particleBullet', { position: this.position, radius: this.bulletRadius });
                     this.delete(bullets);
                 }
             }
@@ -132,6 +154,7 @@ class Bullet {
                 if (Math.abs(this.position.x - value.position.x) <= (MS / 2 + this.bulletRadius / 2) &&
                     Math.abs(this.position.y - value.position.y) <= (MS / 2 + this.bulletRadius / 2)) {
                     value.health -= this.damage;
+                    io.emit('particleBullet', { position: this.position, radius: this.bulletRadius });
                     this.delete(bullets);
                 }
             }
