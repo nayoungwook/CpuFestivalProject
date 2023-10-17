@@ -75,8 +75,7 @@ class Player {
     checkCollision = (landforms, MS) => {
         for (let i = 0; i < landforms.length; i++) {
             if (landforms[i].type == 'rock') {
-                if (Math.abs(this.targetPosition.x - landforms[i].position.x) <= (MS + MS / 2) &&
-                    Math.abs(this.targetPosition.y - landforms[i].position.y) <= (MS + MS / 2)) {
+                if (getDistance(this.position, landforms[i].position) <= (MS + MS * 2) / 2) {
                     return landforms[i];
                 }
             }
@@ -86,18 +85,15 @@ class Player {
 
     movement = (packet, landforms, MS) => {
         if (packet.move) {
-            let backupX = this.targetPosition.x;
-            this.targetPosition.x += Math.round(Math.cos(packet.joystickDir) * this.status.moveSpeed);
             this.dir = packet.joystickDir;
 
-            if (this.checkCollision(landforms, MS) != null) {
-                this.targetPosition.x = backupX;
-            }
-
-            let backupY = this.targetPosition.y;
+            this.targetPosition.x += Math.round(Math.cos(packet.joystickDir) * this.status.moveSpeed);
             this.targetPosition.y += Math.round(Math.sin(packet.joystickDir) * this.status.moveSpeed);
-            if (this.checkCollision(landforms, MS) != null) {
-                this.targetPosition.y = backupY;
+
+            let col = this.checkCollision(landforms, MS)
+            if (col != null) {
+                this.targetPosition.x += (this.targetPosition.x - col.position.x) / 10;
+                this.targetPosition.y += (this.targetPosition.y - col.position.y) / 10;
             }
         }
 
@@ -105,8 +101,8 @@ class Player {
 
         if (this.gun.name == 'pistol') {
             this.gunPosition = {
-                x: this.position.x + Math.cos(this.visualDir) * (MS / 2 + this.reboundValue),
-                y: this.position.y + Math.sin(this.visualDir) * (MS / 2 + this.reboundValue),
+                x: this.position.x + Math.cos(this.visualDir) * (MS + this.reboundValue),
+                y: this.position.y + Math.sin(this.visualDir) * (MS + this.reboundValue),
             }
 
             this.gunSize = {
@@ -116,8 +112,8 @@ class Player {
 
         if (this.gun.name == 'machineGun') {
             this.gunPosition = {
-                x: this.position.x + Math.cos(this.visualDir) * (this.reboundValue),
-                y: this.position.y + Math.sin(this.visualDir) * (this.reboundValue),
+                x: this.position.x + Math.cos(this.visualDir) * (MS / 3 + this.reboundValue),
+                y: this.position.y + Math.sin(this.visualDir) * (MS / 3 + this.reboundValue),
             }
 
             this.gunSize = {
@@ -137,9 +133,6 @@ class Player {
 
         this.position.x += (this.targetPosition.x - this.position.x) / 10;
         this.position.y += (this.targetPosition.y - this.position.y) / 10;
-
-        this.position.x = Math.round(this.position.x);
-        this.position.y = Math.round(this.position.y);
     }
 
     shot = (packet, bullets, MS) => {
@@ -165,14 +158,17 @@ class Bullet {
         this.owner = owner;
         this.dir = dir;
         this.position = { x: owner.gunPosition.x, y: owner.gunPosition.y };
+        if (owner.gun == machineGun) {
+            this.position.y += Math.cos(owner.visualDir) * MS / 2;
+        }
         this.spawnPosition = { x: this.position.x, y: this.position.y };
         this.speed = owner.status.gun.bulletSpeed;
         this.range = owner.status.gun.shotRange;
         this.damage = owner.status.gun.damage;
         this.bulletRadius = 30 / 2;
 
-        this.position.x += Math.cos(this.dir) * MS * 2;
-        this.position.y += Math.sin(this.dir) * MS * 2;
+        this.position.x += Math.cos(this.dir) * MS;
+        this.position.y += Math.sin(this.dir) * MS;
     }
 
     delete = (bullets) => {
@@ -185,8 +181,7 @@ class Bullet {
 
         for (let i = 0; i < landforms.length; i++) {
             if (landforms[i].type == 'rock') {
-                if (Math.abs(this.position.x - landforms[i].position.x) <= (MS + this.bulletRadius / 2) &&
-                    Math.abs(this.position.y - landforms[i].position.y) <= (MS + this.bulletRadius / 2)) {
+                if (getDistance(this.position, landforms[i].position) <= (MS + MS * 2) / 2) {
                     io.emit('particleBullet', { position: this.position, radius: this.bulletRadius });
                     this.delete(bullets);
                 }

@@ -104,7 +104,7 @@ function sendGamePackets() {
 
     for (const [key, value] of users.entries()) {
         let userData = new Object();
-        userData.position = value.position;
+        userData.position = { x: Math.round(value.position.x), y: Math.round(value.position.y) };
         userData.health = value.health;
         userData.fullHealth = value.fullHealth;
         userData.key = value.key;

@@ -266,7 +266,7 @@ class GameScene extends Scene {
                 ctx.drawImage(this.pistolHandImage, -gunCoord.renderWidth / 2, -gunCoord.renderHeight / 2, gunCoord.renderWidth, gunCoord.renderHeight);
             }
             else if (users[i].gun.name == 'machineGun') {
-                ctx.drawImage(this.machineGunHandImage, -gunCoord.renderWidth / 2, -gunCoord.renderHeight / 2, gunCoord.renderWidth, gunCoord.renderHeight);
+                ctx.drawImage(this.machineGunHandImage, -gunCoord.renderWidth / 2, -gunCoord.renderHeight / 2 + MS / 6, gunCoord.renderWidth, gunCoord.renderHeight);
             }
 
             ctx.restore();
