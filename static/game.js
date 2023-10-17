@@ -12,6 +12,7 @@ var usersCache = [];
 
 var bullets = [];
 var particles = [];
+var items = [];
 
 var landforms = [];
 
@@ -64,9 +65,6 @@ class GameScene extends Scene {
         this.bushImage = new Image();
         this.bushImage.src = 'assets/bush.png';
 
-        this.damageArea = new Image();
-        this.damageArea.src = 'assets/damageArea.png';
-
         this.field = new Image();
         this.field.src = 'assets/field.png';
 
@@ -75,6 +73,15 @@ class GameScene extends Scene {
 
         this.machineGunHandImage = new Image();
         this.machineGunHandImage.src = 'assets/machineGunWithHands.png';
+
+        this.shotGunHandImage = new Image();
+        this.shotGunHandImage.src = 'assets/shotGunWithHand.png';
+
+        this.pistolItemImage = new Image();
+        this.pistolItemImage.src = 'assets/pistolItem.png';
+
+        this.machineGunItemImage = new Image();
+        this.machineGunItemImage.src = 'assets/machineGunItem.png';
     }
 
     initializeGame = () => {
@@ -251,12 +258,12 @@ class GameScene extends Scene {
             ctx.rotate(users[i].visualDir);
 
             ctx.drawImage(this.characterImage, -textureCoord.renderWidth / 2, -textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
-            ctx.restore();
 
             if (users[i].gunSize == null || users[i].gunSize == 0)
                 continue;
 
             let gunCoord = Mathf.getRenderInfo(users[i].gunPosition, users[i].gunSize.width, users[i].gunSize.height);
+            ctx.restore();
 
             ctx.save();
             ctx.translate(gunCoord.renderPosition.x, gunCoord.renderPosition.y);
@@ -266,7 +273,10 @@ class GameScene extends Scene {
                 ctx.drawImage(this.pistolHandImage, -gunCoord.renderWidth / 2, -gunCoord.renderHeight / 2, gunCoord.renderWidth, gunCoord.renderHeight);
             }
             else if (users[i].gun.name == 'machineGun') {
-                ctx.drawImage(this.machineGunHandImage, -gunCoord.renderWidth / 2, -gunCoord.renderHeight / 2 + MS / 6, gunCoord.renderWidth, gunCoord.renderHeight);
+                ctx.drawImage(this.machineGunHandImage, -gunCoord.renderWidth / 2, -gunCoord.renderHeight / 2, gunCoord.renderWidth, gunCoord.renderHeight);
+            }
+            else if (users[i].gun.name == 'shotGun') {
+                ctx.drawImage(this.shotGunHandImage, -gunCoord.renderWidth / 2, -gunCoord.renderHeight / 2, gunCoord.renderWidth, gunCoord.renderHeight);
             }
 
             ctx.restore();
@@ -337,8 +347,9 @@ class GameScene extends Scene {
         let coord = Mathf.getRenderInfo(damageCircle.position, damageCircle.radius, damageCircle.radius);
 
         _ctx.clearRect(0, 0, canvas.width, canvas.height);
-        _ctx.globalAlpha = 0.8;
-        _ctx.drawImage(this.damageArea, 0, 0, canvas.width, canvas.height);
+        _ctx.globalAlpha = 0.6;
+        _ctx.fillStyle = '#0B6CFF';
+        _ctx.fillRect(0, 0, canvas.width, canvas.height);
         _ctx.globalAlpha = 1;
 
         _ctx.beginPath();
@@ -346,8 +357,14 @@ class GameScene extends Scene {
         _ctx.globalCompositeOperation = 'destination-out';
         _ctx.arc(coord.renderPosition.x, coord.renderPosition.y, coord.renderWidth, 0, Math.PI * 2);
         _ctx.fill();
-
         _ctx.globalCompositeOperation = 'source-over';
+
+        _ctx.beginPath();
+        _ctx.arc(coord.renderPosition.x, coord.renderPosition.y, coord.renderWidth, 0, Math.PI * 2);
+        _ctx.strokeStyle = 'rgb(255, 255, 245)';
+        _ctx.lineWidth = 8;
+        _ctx.stroke();
+
         ctx.drawImage(this.damageCircleImage, 0, 0, canvas.width, canvas.height);
     }
 
@@ -375,6 +392,7 @@ class GameScene extends Scene {
                     continue;
                 }
             }
+
             let textureCoord = Mathf.getRenderInfo(users[i].position, MS, MS);
 
             ctx.font = "bold 20px blackHanSans";
@@ -384,17 +402,46 @@ class GameScene extends Scene {
             ctx.fillText(users[i].name, textureCoord.renderPosition.x, textureCoord.renderPosition.y - MS / 3 * 4);
 
             ctx.fillStyle = 'rgb(39, 39, 54)';
+            ctx.beginPath();
+            ctx.roundRect(textureCoord.renderPosition.x - MS / 2 - 5, textureCoord.renderPosition.y - MS - 5, MS + 10, MS / 5 + 10, [5]);
+            ctx.fill();
+
+            ctx.fillStyle = 'rgb(39, 39, 54)';
             ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS, MS, MS / 5);
 
             ctx.fillStyle = 'rgb(255, 100, 154)';
             if (users[i].fullHealth != 0)
                 ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS, (MS * users[i].health) / users[i].fullHealth, MS / 5);
         }
+
+        ctx.fillStyle = 'rgb(255, 255, 245)';
+        ctx.textAlign = 'right';
+        ctx.font = "bold 40px blackHanSans";
+        ctx.fillText('Alive : ' + users.length, canvas.width - 30, 50);
     }
 
     renderParticles = () => {
         for (let i = 0; i < particles.length; i++) {
             particles[i].render();
+        }
+    }
+
+    renderItems = () => {
+        for (let i = 0; i < items.length; i++) {
+            let itemImage = null;
+
+            if (items[i].type == 'Pistol') {
+                itemImage = this.pistolItemImage;
+            }
+            else if (items[i].type == 'MachineGun') {
+                itemImage = this.machineGunItemImage;
+            }
+
+
+            let textureCoord = Mathf.getRenderInfo(items[i].position, MS / 3 * 4, MS / 3 * 4);
+
+            ctx.drawImage(itemImage, textureCoord.renderPosition.x - textureCoord.renderWidth / 2,
+                textureCoord.renderPosition.y - textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
         }
     }
 
@@ -406,6 +453,8 @@ class GameScene extends Scene {
 
         this.renderBullets();
         this.renderLandforms();
+        this.renderItems();
+
         this.renderPlayers();
 
         this.renderParticles();
@@ -430,11 +479,6 @@ function findMyPlayer() {
                 backupHealth = myPlayer.health;
 
             myPlayer = users[i];
-
-            if (myPlayer != null && myPlayer.health != backupHealth) {
-                Camera.position.x += Math.round(Math.random() * 30) - 15;
-                Camera.position.y += Math.round(Math.random() * 30) - 15;
-            }
         }
     }
 }
@@ -444,38 +488,13 @@ socket.on('gameData', (packet) => {
 
     MS = packet.gameData.MS;
 
-    //    usersCache = users;
     usersCache = packet.users;
     users = packet.users;
-    /*
-        let _curUsers = new Map();
-    
-        for (let i = 0; i < users.length; i++) {
-            _curUsers.set(users[i].key, users[i]);
-        }
-    
-        for (let i = 0; i < usersCache.length; i++) {
-            if (_curUsers.has(usersCache[i].key)) {
-                let _tUser = _curUsers.get(usersCache[i].key);
-    
-                _tUser.position.x += (usersCache[i].position.x - _tUser.position.x) / 10;
-                _tUser.position.y += (usersCache[i].position.y - _tUser.position.y) / 10;
-            } else {
-                _curUsers.set(usersCache[i].key, usersCache[i]);
-            }
-        }
-    
-        let updatedUsers = [];
-        for (const [key, value] of _curUsers.entries()) {
-            updatedUsers.push(value);
-        }
-    
-        users = updatedUsers;
-    */
 
     landforms = packet.landforms;
 
     bullets = packet.bullets;
+    items = packet.items;
 
     targetDamageCircle = packet.damageCircle;
 });
@@ -483,11 +502,20 @@ socket.on('gameData', (packet) => {
 socket.on('playerDied', (packet) => {
     if (packet.key == myPlayer.key) {
         die = true;
-        console.log('die!');
+        Camera.position.x += Math.round(Math.random() * 30) - 15;
+        Camera.position.y += Math.round(Math.random() * 30) - 15;
     }
+
+    for (let i = 0; i < Math.round(Math.random() * 5) + 10; i++)
+        particles.push(new BloodParticle(packet.user.position.x, packet.user.position.y, 35, 60));
+});
+
+socket.on('particleBlood', (packet) => {
+    for (let i = 0; i < Math.round(Math.random()) + 2; i++)
+        particles.push(new BloodParticle(packet.position.x, packet.position.y, 20, 30));
 });
 
 socket.on('particleBullet', (packet) => {
-    for (let i = 0; i < Math.round(Math.random() * 5) + 4; i++)
+    for (let i = 0; i < Math.round(Math.random() * 3) + 2; i++)
         particles.push(new BulletParticle(packet.position.x, packet.position.y, packet.radius));
 });
