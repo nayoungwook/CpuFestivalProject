@@ -5,10 +5,8 @@ const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
 
-const { Player } = require('./server/player');
-const { Rock, Bush } = require('./server/worldObjects');
+const { Player, Rock, Bush } = require('./server/gameServer');
 const { Mathf } = require('./server/neko');
-const { MachineGunItem } = require('./server/item');
 
 app.use(express.static('static'));
 app.use(express.static('static/assets'));
@@ -23,10 +21,8 @@ const DAMAGE_CIRCLE_RADIUS = 5000;
 
 var damageCircle = { position: { x: 0, y: 0 }, radius: DAMAGE_CIRCLE_RADIUS };
 var users = new Map();
-
 var bullets = [];
 var landforms = [];
-var items = [];
 
 function checkLandforms(position) {
     for (let i = 0; i < landforms.length; i++) {
@@ -99,9 +95,8 @@ io.on('connection', (socket) => {
     socket.on('userInput', (packet) => {
         if (users.has(packet.key)) {
             // update user with packet
-            users.get(packet.key).shotUpdate({ gunDir: packet.gunDir, shot: packet.shot }, bullets, MS);
             users.get(packet.key).movement({ joystickDir: packet.joystickDir, move: packet.move }, landforms, MS);
-            users.get(packet.key).checkItemCollision(items, MS);
+            users.get(packet.key).shotUpdate({ gunDir: packet.gunDir, shot: packet.shot }, bullets, MS);
         }
     });
 });
@@ -114,10 +109,6 @@ function updateGame() {
     for (const [key, value] of users.entries()) {
         value.tick(users, damageCircle, io);
     }
-
-    for (let i = 0; i < items.length; i++) {
-        items[i].update(items, landforms, MS);
-    }
 }
 
 function sendGamePackets() {
@@ -126,8 +117,6 @@ function sendGamePackets() {
     data.users = [];
     data.bullets = bullets;
     data.landforms = landforms;
-
-    data.items = items;
 
     data.damageCircle = damageCircle;
 
@@ -146,7 +135,7 @@ function sendGamePackets() {
         userData.bush = value.bush;
         userData.visualDir = value.visualDir;
         userData.reboundValue = value.reboundValue;
-        userData.gun = value.gun.gunData;
+        userData.gun = value.gun;
         userData.gunPosition = value.gunPosition;
         userData.gunSize = value.gunSize;
 
@@ -160,10 +149,10 @@ function decreaseDamageCircle() {
 
     damageCircle.position.x += Math.round(Math.random() * 200) - 100;
     damageCircle.position.y += Math.round(Math.random() * 200) - 100;
-    damageCircle.radius -= 150;
+    damageCircle.radius -= 200;
 
     if (damageCircle.radius > 0)
-        setTimeout(() => { decreaseDamageCircle() }, 1000 * 15);
+        setTimeout(() => { decreaseDamageCircle() }, 1000 * 5);
 }
 
 function update() {
@@ -173,8 +162,6 @@ function update() {
 
 server.listen(3000, async () => {
     console.log('listening on *:3000');
-
-    //items.push(new MachineGunItem(null, 0, 0));
 });
 
 decreaseDamageCircle();

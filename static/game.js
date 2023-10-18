@@ -453,7 +453,7 @@ class GameScene extends Scene {
 
         this.renderBullets();
         this.renderLandforms();
-        this.renderItems();
+        // this.renderItems();
 
         this.renderPlayers();
 
