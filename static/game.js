@@ -13,6 +13,29 @@ var usersCache = [];
 var bullets = [];
 var particles = [];
 var items = [];
+var myItems = [];
+
+var mouseDir = 0;
+var mouseClick = false;
+var keyDir = 0;
+var keyMoved = false;
+var key = {
+    w: false,
+    s: false,
+    a: false,
+    d: false,
+    n1: false,
+    n2: false,
+    n3: false,
+    shift: false,
+};
+var mousePosition = {
+    x: 0, y: 0
+};
+
+var selectedSlot = 1;
+
+var myPlayerRenderPosition = { x: 0, y: 0 };
 
 var landforms = [];
 
@@ -27,6 +50,41 @@ var startedTouches = [];
 var touches = [];
 
 var bush = null;
+
+addEventListener('mousedown', (e) => {
+    mouseClick = true;
+});
+
+addEventListener('mousemove', (e) => {
+    mousePosition.x = e.clientX;
+    mousePosition.y = e.clientY;
+});
+
+addEventListener('mouseup', (e) => {
+    mouseClick = false;
+})
+
+addEventListener('keydown', (e) => {
+    if (e.key == 'w') key.w = true;
+    if (e.key == 's') key.s = true;
+    if (e.key == 'a') key.a = true;
+    if (e.key == 'd') key.d = true;
+    if (e.key == '1') key.n1 = true;
+    if (e.key == '2') key.n2 = true;
+    if (e.key == '3') key.n3 = true;
+    if (e.key == 'q') key.q = true;
+});
+
+addEventListener('keyup', (e) => {
+    if (e.key == 'w') key.w = false;
+    if (e.key == 's') key.s = false;
+    if (e.key == 'a') key.a = false;
+    if (e.key == 'd') key.d = false;
+    if (e.key == '1') key.n1 = false;
+    if (e.key == '2') key.n2 = false;
+    if (e.key == '3') key.n3 = false;
+    if (e.key == 'q') key.q = false;
+});
 
 addEventListener('touchstart', (e) => {
     startedTouches = e.touches;
@@ -77,11 +135,23 @@ class GameScene extends Scene {
         this.shotGunHandImage = new Image();
         this.shotGunHandImage.src = 'assets/shotGunWithHand.png';
 
+        this.itemBackgroundImage = new Image();
+        this.itemBackgroundImage.src = 'assets/itemBackground.png';
+
+        this.itemSlotImage = new Image();
+        this.itemSlotImage.src = 'assets/itemSlot.png';
+
+        this.selectedItemSlotImage = new Image();
+        this.selectedItemSlotImage.src = 'assets/selectedItemSlot.png';
+
         this.pistolItemImage = new Image();
         this.pistolItemImage.src = 'assets/pistolItem.png';
 
         this.machineGunItemImage = new Image();
         this.machineGunItemImage.src = 'assets/machineGunItem.png';
+
+        this.shotGunItemImage = new Image();
+        this.shotGunItemImage.src = 'assets/shotGunItem.png';
     }
 
     initializeGame = () => {
@@ -101,9 +171,17 @@ class GameScene extends Scene {
         this.gunJoystickDir = _gunDir;
 
         socket.emit('userInput', {
-            joystickDir: _joystickDir, move: this.joystickTouch != null,
-            gunDir: _gunDir, shot: this.gunJoystickTouch != null,
-            key: document.cookie
+            //            joystickDir: _joystickDir, 
+            //            move: this.joystickTouch != null,
+            //gunDir: _gunDir, shot: this.gunJoystickTouch != null,
+            //key: document.cookie
+
+            joystickDir: keyDir,
+            move: keyMoved,
+            gunDir: mouseDir,
+            use: mouseClick,
+            key: document.cookie,
+            selectedSlot: selectedSlot,
         });
     }
 
@@ -120,6 +198,28 @@ class GameScene extends Scene {
     }
 
     tick = () => {
+
+        let xv = 0, yv = 0;
+        if (key.w) yv -= 1;
+        if (key.s) yv += 1;
+        if (key.a) xv -= 1;
+        if (key.d) xv += 1;
+
+        keyMoved = !(xv == 0 && yv == 0);
+
+        if (key.q) {
+            socket.emit('dropItem', {
+                selectedSlot: selectedSlot, key: document.cookie,
+            });
+            key.q = false;
+        } else {
+            if (key.n1) selectedSlot = 1;
+            if (key.n2) selectedSlot = 2;
+            if (key.n3) selectedSlot = 3;
+        }
+
+        keyDir = Math.atan2(yv, xv);
+        mouseDir = Math.atan2(mousePosition.y - myPlayerRenderPosition.y, mousePosition.x - myPlayerRenderPosition.x);
         const start = Date.now();
 
         damageCircle.position.x += (targetDamageCircle.position.x - damageCircle.position.x) / 10;
@@ -142,7 +242,7 @@ class GameScene extends Scene {
         this.lastUpdate = now;
         this.frame = Math.round(1000 / dt);
 
-        zoomRatio = (canvas.width / 1920);
+        zoomRatio = (canvas.width / 1920) / 2;
         let padSize = 100 * zoomRatio;
 
         this.padPosition.x = padSize / 5 * 14;
@@ -164,7 +264,7 @@ class GameScene extends Scene {
         Camera.position.x += Math.round(((myPlayer.position.x - canvas.width / 2) - Camera.position.x) / 15);
         Camera.position.y += Math.round(((myPlayer.position.y - canvas.height / 2) - Camera.position.y) / 15);
 
-        this.updateJoyStick();
+        //this.updateJoyStick();
 
         this.sendPacket();
     }
@@ -247,6 +347,11 @@ class GameScene extends Scene {
             textureCoord.renderPosition.x = Math.round(textureCoord.renderPosition.x);
             textureCoord.renderPosition.y = Math.round(textureCoord.renderPosition.y);
 
+            if (users[i] == myPlayer) {
+                myPlayerRenderPosition.x = textureCoord.renderPosition.x;
+                myPlayerRenderPosition.y = textureCoord.renderPosition.y;
+            }
+
             ctx.fillStyle = 'rgb(39, 39, 54)';
             ctx.fillText(users[i].name, textureCoord.renderPosition.x, textureCoord.renderPosition.y - MS / 3 * 4);
 
@@ -262,27 +367,41 @@ class GameScene extends Scene {
             if (users[i].gunSize == null || users[i].gunSize == 0)
                 continue;
 
-            let gunCoord = Mathf.getRenderInfo(users[i].gunPosition, users[i].gunSize.width, users[i].gunSize.height);
             ctx.restore();
 
-            ctx.save();
-            ctx.translate(gunCoord.renderPosition.x, gunCoord.renderPosition.y);
-            ctx.rotate(users[i].visualDir);
-
-            if (users[i].gun.name == 'pistol') {
-                ctx.drawImage(this.pistolHandImage, -gunCoord.renderWidth / 2, -gunCoord.renderHeight / 2, gunCoord.renderWidth, gunCoord.renderHeight);
-            }
-            else if (users[i].gun.name == 'machineGun') {
-                ctx.drawImage(this.machineGunHandImage, -gunCoord.renderWidth / 2, -gunCoord.renderHeight / 2, gunCoord.renderWidth, gunCoord.renderHeight);
-            }
-            else if (users[i].gun.name == 'shotGun') {
-                ctx.drawImage(this.shotGunHandImage, -gunCoord.renderWidth / 2, -gunCoord.renderHeight / 2, gunCoord.renderWidth, gunCoord.renderHeight);
-            }
-
-            ctx.restore();
+            this.renderTool(users[i]);
 
             ctx.globalAlpha = 1;
         }
+    }
+
+    renderTool = (user) => {
+        let toolCoord = Mathf.getRenderInfo(user.gunPosition, user.gunSize.width, user.gunSize.height);
+
+        ctx.save();
+        ctx.translate(toolCoord.renderPosition.x, toolCoord.renderPosition.y);
+        ctx.rotate(user.visualDir);
+        console.log(user);
+
+        let currentItem = user.currentItem;
+
+        if (currentItem != null) {
+            if (currentItem.itemType == 'Gun') {
+                if (currentItem.type == 'Pistol') {
+                    ctx.drawImage(this.pistolHandImage, -toolCoord.renderWidth / 2, -toolCoord.renderHeight / 2, toolCoord.renderWidth, toolCoord.renderHeight);
+                }
+                else if (currentItem.type == 'MachineGun') {
+                    ctx.drawImage(this.machineGunHandImage, -toolCoord.renderWidth / 2, -toolCoord.renderHeight / 2, toolCoord.renderWidth, toolCoord.renderHeight);
+                }
+                else if (currentItem.type == 'ShotGun') {
+                    ctx.drawImage(this.shotGunHandImage, -toolCoord.renderWidth / 2, -toolCoord.renderHeight / 2, toolCoord.renderWidth, toolCoord.renderHeight);
+                }
+            }
+        } else {
+
+        }
+
+        ctx.restore();
     }
 
     renderBullets = () => {
@@ -373,6 +492,37 @@ class GameScene extends Scene {
         ctx.drawImage(this.field, coord.renderPosition.x, coord.renderPosition.y, coord.renderWidth, coord.renderHeight);
     }
 
+    getItemImage = (item) => {
+        let itemImage = null;
+        if (item == null) return null;
+
+        if (item.type == 'Pistol') {
+            itemImage = this.pistolItemImage;
+        }
+        else if (item.type == 'MachineGun') {
+            itemImage = this.machineGunItemImage;
+        } else if (item.type == 'ShotGun') {
+            itemImage = this.shotGunItemImage;
+        }
+
+        return itemImage;
+    }
+
+    renderItemSlots = () => {
+        for (let i = 0; i < 3; i++) {
+            let gap = MS / 7 * 8;
+            ctx.drawImage(this.itemSlotImage, canvas.width / 2 + (-1 + i) * gap, canvas.height - gap, MS, MS);
+
+            let _itemImage = this.getItemImage(myItems[i]);
+            if (_itemImage != null)
+                ctx.drawImage(_itemImage, canvas.width / 2 + (-1 + i) * gap, canvas.height - gap, MS, MS);
+
+            if (i + 1 == selectedSlot) {
+                ctx.drawImage(this.selectedItemSlotImage, canvas.width / 2 + (-1 + i) * gap, canvas.height - gap, MS, MS);
+            }
+        }
+    }
+
     renderUI = () => {
         for (let i = 0; i < users.length; i++) {
             if (users[i] == myPlayer)
@@ -414,6 +564,8 @@ class GameScene extends Scene {
                 ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS, (MS * users[i].health) / users[i].fullHealth, MS / 5);
         }
 
+        this.renderItemSlots();
+
         ctx.fillStyle = 'rgb(255, 255, 245)';
         ctx.textAlign = 'right';
         ctx.font = "bold 40px blackHanSans";
@@ -428,19 +580,14 @@ class GameScene extends Scene {
 
     renderItems = () => {
         for (let i = 0; i < items.length; i++) {
-            let itemImage = null;
+            let itemImage = this.getItemImage(items[i]);
 
-            if (items[i].type == 'Pistol') {
-                itemImage = this.pistolItemImage;
-            }
-            else if (items[i].type == 'MachineGun') {
-                itemImage = this.machineGunItemImage;
-            }
-
+            if (itemImage == null) continue;
 
             let textureCoord = Mathf.getRenderInfo(items[i].position, MS / 3 * 4, MS / 3 * 4);
-
             ctx.drawImage(itemImage, textureCoord.renderPosition.x - textureCoord.renderWidth / 2,
+                textureCoord.renderPosition.y - textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
+            ctx.drawImage(this.itemBackgroundImage, textureCoord.renderPosition.x - textureCoord.renderWidth / 2,
                 textureCoord.renderPosition.y - textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
         }
     }
@@ -451,9 +598,9 @@ class GameScene extends Scene {
 
         this.renderField();
 
-        this.renderBullets();
         this.renderLandforms();
-        // this.renderItems();
+        this.renderBullets();
+        this.renderItems();
 
         this.renderPlayers();
 
@@ -464,8 +611,8 @@ class GameScene extends Scene {
         this.renderUI();
         this.renderDebug(); // TODO : disable this debug function
 
-        this.renderJoystick(this.padPosition, this.joystickTouch);
-        this.renderJoystick(this.gunPadPosition, this.gunJoystickTouch);
+        //        this.renderJoystick(this.padPosition, this.joystickTouch);
+        //        this.renderJoystick(this.gunPadPosition, this.gunJoystickTouch);
 
         this.renderDieScreen();
     }
@@ -479,6 +626,7 @@ function findMyPlayer() {
                 backupHealth = myPlayer.health;
 
             myPlayer = users[i];
+            myItems = myPlayer.items;
         }
     }
 }
@@ -490,6 +638,7 @@ socket.on('gameData', (packet) => {
 
     usersCache = packet.users;
     users = packet.users;
+    //items = packet.items;
 
     landforms = packet.landforms;
 

@@ -5,8 +5,13 @@ const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
 
-const { Player, Rock, Bush } = require('./server/gameServer');
+const { createLandforms } = require('./server/gameServer');
 const { Mathf } = require('./server/neko');
+const { Bush, Rock } = require('./server/mapObject');
+const { Bullet, bullets } = require('./server/bullet');
+const { createUserKey } = require('./server/keyCreator');
+const { Player, users } = require('./server/player');
+const { items, PistolItem, MachineGunItem, ShotGunItem } = require('./server/item');
 
 app.use(express.static('static'));
 app.use(express.static('static/assets'));
@@ -20,74 +25,14 @@ const MS = 100;
 const DAMAGE_CIRCLE_RADIUS = 5000;
 
 var damageCircle = { position: { x: 0, y: 0 }, radius: DAMAGE_CIRCLE_RADIUS };
-var users = new Map();
-var bullets = [];
 var landforms = [];
-
-function checkLandforms(position) {
-    for (let i = 0; i < landforms.length; i++) {
-        if (Mathf.getDistance(landforms[i].position, position) <= MS * 3) {
-            return true;
-        }
-    }
-    return false;
-}
-
-function createLandforms() {
-    for (let i = 0; i < 60; i++) {
-        let _position = { x: 0, y: 0 };
-
-        do {
-            _position = { x: Math.round(Math.random() * 8000) - 4000, y: Math.round(Math.random() * 8000) - 4000 };
-        } while (checkLandforms(_position));
-
-        landforms.push(new Rock(_position.x, _position.y));
-    }
-    for (let i = 0; i < 60; i++) {
-
-        let _position = { x: 0, y: 0 };
-
-        do {
-            _position = { x: Math.round(Math.random() * 8000) - 4000, y: Math.round(Math.random() * 8000) - 4000 };
-        } while (checkLandforms(_position));
-
-        landforms.push(new Bush(_position.x, _position.y));
-    }
-}
-
-createLandforms();
-
-var keyCache = [
-    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
-    'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
-    'u', 'v', 'w', 'x', 'y', 'z', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
-    '!', '@', '#', '$', '%', '^', '&', '*',
-];
-
-function createUserKey() {
-    let done = false;
-
-    let _key = '';
-    while (!done) {
-        _key = '';
-
-        for (let i = 0; i < 10; i++) {
-            _key += keyCache[Math.round(Math.random() * (keyCache.length - 1))];
-        }
-
-        if (!users.has('_key'))
-            done = true;
-    }
-
-    return _key;
-}
 
 io.on('connection', (socket) => {
     socket.on('enterGameRoom', (packet) => {
-        let key = createUserKey();
+        let key = createUserKey(users);
         io.emit('enterGameRoomConfirmed', { key: key });
 
-        users.set(key, new Player(key, packet.name));
+        users.set(key, new Player(key, packet.name, Math.round(Math.random() * 8000) - 4000, Math.round(Math.random() * 8000) - 4000));
     });
     socket.on("ping", (callback) => {
         callback();
@@ -96,7 +41,31 @@ io.on('connection', (socket) => {
         if (users.has(packet.key)) {
             // update user with packet
             users.get(packet.key).movement({ joystickDir: packet.joystickDir, move: packet.move }, landforms, MS);
-            users.get(packet.key).shotUpdate({ gunDir: packet.gunDir, shot: packet.shot }, bullets, MS);
+            users.get(packet.key).useUpdate({ gunDir: packet.gunDir, use: packet.use }, bullets, MS);
+            users.get(packet.key).selectedSlot = packet.selectedSlot;
+        }
+    });
+    socket.on('dropItem', (packet) => {
+        if (users.has(packet.key)) {
+            let user = users.get(packet.key);
+
+            let item = user.items[packet.selectedSlot - 1];
+
+            if (item == null) return;
+
+            let userItems = user.items;
+
+            userItems.splice(userItems.indexOf(item), 1);
+            let _outItem = item;
+            let _outDir = Math.random() * Math.PI * 2;
+
+            _outItem.power = 10;
+            _outItem.outDir = _outDir;
+
+            _outItem.position.x = user.position.x + Math.cos(_outDir) * MS * 1.5;
+            _outItem.position.y = user.position.y + Math.sin(_outDir) * MS * 1.5;
+
+            items.push(_outItem);
         }
     });
 });
@@ -109,6 +78,11 @@ function updateGame() {
     for (const [key, value] of users.entries()) {
         value.tick(users, damageCircle, io);
     }
+
+    for (let i = 0; i < items.length; i++) {
+        items[i].update();
+        items[i].collision(MS, users, landforms);
+    }
 }
 
 function sendGamePackets() {
@@ -117,6 +91,7 @@ function sendGamePackets() {
     data.users = [];
     data.bullets = bullets;
     data.landforms = landforms;
+    data.items = items;
 
     data.damageCircle = damageCircle;
 
@@ -138,6 +113,8 @@ function sendGamePackets() {
         userData.gun = value.gun;
         userData.gunPosition = value.gunPosition;
         userData.gunSize = value.gunSize;
+        userData.items = value.items;
+        userData.currentItem = value.currentItem;
 
         data.users.push(userData);
     }
@@ -149,10 +126,18 @@ function decreaseDamageCircle() {
 
     damageCircle.position.x += Math.round(Math.random() * 200) - 100;
     damageCircle.position.y += Math.round(Math.random() * 200) - 100;
-    damageCircle.radius -= 200;
+    damageCircle.radius -= 100;
 
     if (damageCircle.radius > 0)
-        setTimeout(() => { decreaseDamageCircle() }, 1000 * 5);
+        setTimeout(() => { decreaseDamageCircle() }, 1000 * 20);
+}
+
+function initialize() {
+    createLandforms(landforms, MS);
+
+    items.push(new PistolItem(Math.round(Math.random() * 8000) - 4000, Math.round(Math.random() * 8000) - 4000));
+    items.push(new MachineGunItem(Math.round(Math.random() * 8000) - 4000, Math.round(Math.random() * 8000) - 4000));
+    items.push(new ShotGunItem(Math.round(Math.random() * 8000) - 4000, Math.round(Math.random() * 8000) - 4000));
 }
 
 function update() {
@@ -162,6 +147,7 @@ function update() {
 
 server.listen(3000, async () => {
     console.log('listening on *:3000');
+    initialize();
 });
 
 decreaseDamageCircle();
