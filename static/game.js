@@ -152,6 +152,9 @@ class GameScene extends Scene {
 
         this.shotGunItemImage = new Image();
         this.shotGunItemImage.src = 'assets/shotGunItem.png';
+
+        this.bandageItemImage = new Image();
+        this.bandageItemImage.src = 'assets/bandageItem.png';
     }
 
     initializeGame = () => {
@@ -352,9 +355,6 @@ class GameScene extends Scene {
                 myPlayerRenderPosition.y = textureCoord.renderPosition.y;
             }
 
-            ctx.fillStyle = 'rgb(39, 39, 54)';
-            ctx.fillText(users[i].name, textureCoord.renderPosition.x, textureCoord.renderPosition.y - MS / 3 * 4);
-
             if (playerInBush)
                 ctx.globalAlpha = 0.5;
 
@@ -503,6 +503,8 @@ class GameScene extends Scene {
             itemImage = this.machineGunItemImage;
         } else if (item.type == 'ShotGun') {
             itemImage = this.shotGunItemImage;
+        } else if (item.type == 'Bandage') {
+            itemImage = this.bandageItemImage;
         }
 
         return itemImage;
@@ -548,20 +550,27 @@ class GameScene extends Scene {
             ctx.font = "bold 20px blackHanSans";
             ctx.textAlign = 'center';
 
-            ctx.fillStyle = 'rgb(39, 39, 54)';
-            ctx.fillText(users[i].name, textureCoord.renderPosition.x, textureCoord.renderPosition.y - MS / 3 * 4);
+            ctx.fillStyle = 'rgb(255, 255, 245)';
+            ctx.fillText(users[i].name, textureCoord.renderPosition.x, textureCoord.renderPosition.y - MS);
 
             ctx.fillStyle = 'rgb(39, 39, 54)';
             ctx.beginPath();
-            ctx.roundRect(textureCoord.renderPosition.x - MS / 2 - 5, textureCoord.renderPosition.y - MS - 5, MS + 10, MS / 5 + 10, [5]);
+            ctx.roundRect(textureCoord.renderPosition.x - MS / 2 - 5, textureCoord.renderPosition.y - MS / 2 - 5, MS + 10, MS / 5 + 10, [5]);
             ctx.fill();
 
             ctx.fillStyle = 'rgb(39, 39, 54)';
-            ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS, MS, MS / 5);
+            ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS / 2, MS, MS / 5);
 
             ctx.fillStyle = 'rgb(255, 100, 154)';
             if (users[i].fullHealth != 0)
-                ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS, (MS * users[i].health) / users[i].fullHealth, MS / 5);
+                ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS / 2, (MS * users[i].health) / users[i].fullHealth, MS / 5);
+
+            if (users[i].expendableCharge != 0) {
+                ctx.fillStyle = 'rgb(255, 255, 245)';
+                ctx.textAlign = 'center';
+                ctx.font = "bold 20px blackHanSans";
+                ctx.fillText('using (' + Math.round(users[i].expendableCharge * 100) + '%)', textureCoord.renderPosition.x, textureCoord.renderPosition.y - MS / 3 * 2);
+            }
         }
 
         this.renderItemSlots();
@@ -656,7 +665,7 @@ socket.on('playerDied', (packet) => {
     }
 
     for (let i = 0; i < Math.round(Math.random() * 5) + 10; i++)
-        particles.push(new BloodParticle(packet.user.position.x, packet.user.position.y, 35, 60));
+        particles.push(new loodParticle(packet.user.position.x, packet.user.position.y, 35, 60));
 });
 
 socket.on('particleBlood', (packet) => {

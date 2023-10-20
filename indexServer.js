@@ -11,7 +11,7 @@ const { Bush, Rock } = require('./server/mapObject');
 const { Bullet, bullets } = require('./server/bullet');
 const { createUserKey } = require('./server/keyCreator');
 const { Player, users } = require('./server/player');
-const { items, PistolItem, MachineGunItem, ShotGunItem } = require('./server/item');
+const { items, PistolItem, MachineGunItem, ShotGunItem, BandageItem } = require('./server/item');
 
 app.use(express.static('static'));
 app.use(express.static('static/assets'));
@@ -32,7 +32,8 @@ io.on('connection', (socket) => {
         let key = createUserKey(users);
         io.emit('enterGameRoomConfirmed', { key: key });
 
-        users.set(key, new Player(key, packet.name, Math.round(Math.random() * 8000) - 4000, Math.round(Math.random() * 8000) - 4000));
+        //        users.set(key, new Player(key, packet.name, Math.round(Math.random() * 8000) - 4000, Math.round(Math.random() * 8000) - 4000));
+        users.set(key, new Player(key, packet.name, 0, 0));
     });
     socket.on("ping", (callback) => {
         callback();
@@ -41,7 +42,7 @@ io.on('connection', (socket) => {
         if (users.has(packet.key)) {
             // update user with packet
             users.get(packet.key).movement({ joystickDir: packet.joystickDir, move: packet.move }, landforms, MS);
-            users.get(packet.key).useUpdate({ gunDir: packet.gunDir, use: packet.use }, bullets, MS);
+            users.get(packet.key).useUpdate({ gunDir: packet.gunDir, use: packet.use }, bullets, MS, items);
             users.get(packet.key).selectedSlot = packet.selectedSlot;
         }
     });
@@ -115,6 +116,7 @@ function sendGamePackets() {
         userData.gunSize = value.gunSize;
         userData.items = value.items;
         userData.currentItem = value.currentItem;
+        userData.expendableCharge = value.expendableCharge;
 
         data.users.push(userData);
     }
@@ -138,6 +140,7 @@ function initialize() {
     items.push(new PistolItem(Math.round(Math.random() * 8000) - 4000, Math.round(Math.random() * 8000) - 4000));
     items.push(new MachineGunItem(Math.round(Math.random() * 8000) - 4000, Math.round(Math.random() * 8000) - 4000));
     items.push(new ShotGunItem(Math.round(Math.random() * 8000) - 4000, Math.round(Math.random() * 8000) - 4000));
+    items.push(new BandageItem(0, 0));
 }
 
 function update() {

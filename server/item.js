@@ -106,4 +106,13 @@ class ShotGunItem extends Item {
     }
 }
 
-module.exports = { items, Item, PistolItem, MachineGunItem, ShotGunItem };
+class BandageItem extends Item {
+    constructor(x, y) {
+        super('Bandage', x, y);
+        this.itemType = 'Expendable';
+        this.heal = 15;
+        this.chargeTime = 1 / 60 / 5;
+    }
+}
+
+module.exports = { items, Item, PistolItem, MachineGunItem, ShotGunItem, BandageItem };
