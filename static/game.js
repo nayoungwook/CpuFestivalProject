@@ -167,6 +167,9 @@ class GameScene extends Scene {
 
         this.grenadeItemImage = new Image();
         this.grenadeItemImage.src = 'assets/grenadeItem.png';
+
+        this.deathImage = new Image();
+        this.deathImage.src = 'assets/death.png';
     }
 
     initializeGame = () => {
@@ -446,12 +449,7 @@ class GameScene extends Scene {
 
         ctx.fillStyle = 'rgba(40, 40, 40, 0.5)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.font = "bold 100px blackHanSans";
-        ctx.textAlign = 'center';
-
-        ctx.fillStyle = 'rgb(250, 150, 120)';
-        ctx.fillText('사망하셨습니다.', canvas.width / 2, canvas.height / 3);
+        ctx.drawImage(this.deathImage, 0, 0, canvas.width, canvas.height);
     }
 
     renderLandforms = () => {
