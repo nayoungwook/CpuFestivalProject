@@ -30,6 +30,7 @@ class Player {
 
         this.fullHealth = 50;
         this.health = this.fullHealth / 2;
+        this.shield = 0;
 
         this.dir = 0;
         this.visualDir = 0;
@@ -47,7 +48,7 @@ class Player {
         this.expendableCharge = 0;
     }
 
-    tick = (users, damageCircle, io) => {
+    tick = (users, damageCircle, io, MS, items) => {
         this.moveSpeed += (this.status.moveSpeed - this.moveSpeed) / 10;
         this.reboundValue += (0 - this.reboundValue) / 10;
 
@@ -70,10 +71,31 @@ class Player {
                     this.useTimer = 1;
             }
         }
+
         if (Mathf.getDistance(damageCircle.position, this.position) > damageCircle.radius) {
             this.health -= 0.1;
         }
+
         if (this.health <= 0) {
+            for (let i = 0; i < this.items.length; i++) {
+                let item = this.items[i];
+                if (item == null) return;
+
+                let _outItem = item;
+                let _outDir = Math.random() * Math.PI * 2;
+
+                _outItem.power = 10;
+                _outItem.outDir = _outDir;
+
+                _outItem.position.x = this.position.x + Math.cos(_outDir) * MS * 1.5;
+                _outItem.position.y = this.position.y + Math.sin(_outDir) * MS * 1.5;
+            }
+            for (let i = 0; i < this.items.length; i++) {
+                items.push(this.items[i]);
+            }
+
+            this.items = [];
+
             io.emit('playerDied', { user: this, key: this.key });
             users.delete(this.key);
         }
@@ -154,42 +176,54 @@ class Player {
         this.position.y += (this.targetPosition.y - this.position.y) / 10;
     }
 
-    use = (packet, bullets, MS, items) => {
+    useGun = (packet, bullets, MS, items) => {
         this.reboundValue = -MS / 10;
+        if (this.gun != null) {
+            if (this.gun.name != 'shotGun') {
+                bullets.push(new Bullet(this, packet.gunDir, MS));
+            } else {
+                for (let i = 0; i < 6; i++)
+                    bullets.push(new Bullet(this, packet.gunDir + Math.random() / 2 - 0.5 / 2, MS));
+            }
+        }
+        this.useTimer = 0;
+    }
 
+    useExpendable = (packet, bullets, MS, items) => {
+        this.expendableCharge += this.currentItem.chargeTime;
+        this.moveSpeed = this.status.moveSpeed / 2;
+        if (this.expendableCharge >= 1) {
+            this.expendableCharge = 0;
+
+            if (this.currentItem.type == 'Bandage') {
+                this.health += this.currentItem.heal;
+                if (this.health >= this.fullHealth) {
+                    this.health = this.fullHealth;
+                }
+            } else if (this.currentItem.type == 'MonsterEnergy') {
+                this.shield += this.currentItem.shield;
+                if (this.shield >= this.fullHealth) {
+                    this.shield = this.fullHealth;
+                }
+            }
+
+            let item = this.items[this.selectedSlot - 1];
+
+            if (item == null) return;
+
+            let userItems = this.items;
+
+            userItems.splice(userItems.indexOf(item), 1);
+        }
+    }
+
+    use = (packet, bullets, MS, items) => {
         if (this.currentItem == null) return;
 
         if (this.currentItem.itemType == 'Gun') {
-            if (this.gun != null) {
-                if (this.gun.name != 'shotGun') {
-                    bullets.push(new Bullet(this, packet.gunDir, MS));
-                } else {
-                    for (let i = 0; i < 6; i++)
-                        bullets.push(new Bullet(this, packet.gunDir + Math.random() / 2 - 0.5 / 2, MS));
-                }
-            }
-            this.useTimer = 0;
+            this.useGun(packet, bullets, MS, items);
         } else if (this.currentItem.itemType == 'Expendable') {
-            this.expendableCharge += this.currentItem.chargeTime;
-            this.moveSpeed = this.status.moveSpeed / 2;
-            if (this.expendableCharge >= 1) {
-                this.expendableCharge = 0;
-
-                if (this.currentItem.type == 'Bandage') {
-                    this.health += this.currentItem.heal;
-                    if (this.health >= this.fullHealth) {
-                        this.health = this.fullHealth;
-                    }
-                }
-
-                let item = this.items[this.selectedSlot - 1];
-
-                if (item == null) return;
-
-                let userItems = this.items;
-
-                userItems.splice(userItems.indexOf(item), 1);
-            }
+            this.useExpendable(packet, bullets, MS, items);
         }
     }
 

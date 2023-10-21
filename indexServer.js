@@ -11,7 +11,7 @@ const { Bush, Rock } = require('./server/mapObject');
 const { Bullet, bullets } = require('./server/bullet');
 const { createUserKey } = require('./server/keyCreator');
 const { Player, users } = require('./server/player');
-const { items, PistolItem, MachineGunItem, ShotGunItem, BandageItem } = require('./server/item');
+const { items, PistolItem, MachineGunItem, ShotGunItem, BandageItem, MonsterEnergyItem } = require('./server/item');
 
 app.use(express.static('static'));
 app.use(express.static('static/assets'));
@@ -77,7 +77,7 @@ function updateGame() {
     }
 
     for (const [key, value] of users.entries()) {
-        value.tick(users, damageCircle, io);
+        value.tick(users, damageCircle, io, MS, items);
     }
 
     for (let i = 0; i < items.length; i++) {
@@ -141,6 +141,7 @@ function initialize() {
     items.push(new MachineGunItem(Math.round(Math.random() * 8000) - 4000, Math.round(Math.random() * 8000) - 4000));
     items.push(new ShotGunItem(Math.round(Math.random() * 8000) - 4000, Math.round(Math.random() * 8000) - 4000));
     items.push(new BandageItem(0, 0));
+    items.push(new MonsterEnergyItem(0, 0));
 }
 
 function update() {

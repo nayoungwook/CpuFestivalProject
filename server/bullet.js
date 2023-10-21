@@ -39,7 +39,7 @@ class Bullet {
                 if (Math.abs(this.position.x - value.position.x) <= (MS / 2 + this.bulletRadius / 2) &&
                     Math.abs(this.position.y - value.position.y) <= (MS / 2 + this.bulletRadius / 2)) {
                     value.health -= this.damage;
-                    this.moveSpeed = this.status.moveSpeed / 2;s
+                    value.moveSpeed = value.status.moveSpeed / 2;
                     io.emit('particleBlood', { position: this.position });
                     io.emit('particleBullet', { position: this.position, radius: this.bulletRadius });
                     this.delete(bullets);

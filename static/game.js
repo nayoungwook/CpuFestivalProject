@@ -155,6 +155,9 @@ class GameScene extends Scene {
 
         this.bandageItemImage = new Image();
         this.bandageItemImage.src = 'assets/bandageItem.png';
+
+        this.monsterEnergyItemImage = new Image();
+        this.monsterEnergyItemImage.src = 'assets/monsterEnergyItem.png';
     }
 
     initializeGame = () => {
@@ -381,7 +384,6 @@ class GameScene extends Scene {
         ctx.save();
         ctx.translate(toolCoord.renderPosition.x, toolCoord.renderPosition.y);
         ctx.rotate(user.visualDir);
-        console.log(user);
 
         let currentItem = user.currentItem;
 
@@ -505,6 +507,8 @@ class GameScene extends Scene {
             itemImage = this.shotGunItemImage;
         } else if (item.type == 'Bandage') {
             itemImage = this.bandageItemImage;
+        } else if (item.type == 'MonsterEnergy') {
+            itemImage = this.monsterEnergyItemImage;
         }
 
         return itemImage;
@@ -665,7 +669,7 @@ socket.on('playerDied', (packet) => {
     }
 
     for (let i = 0; i < Math.round(Math.random() * 5) + 10; i++)
-        particles.push(new loodParticle(packet.user.position.x, packet.user.position.y, 35, 60));
+        particles.push(new BloodParticle(packet.user.position.x, packet.user.position.y, 35, 60));
 });
 
 socket.on('particleBlood', (packet) => {

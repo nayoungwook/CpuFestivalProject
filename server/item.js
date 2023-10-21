@@ -111,8 +111,20 @@ class BandageItem extends Item {
         super('Bandage', x, y);
         this.itemType = 'Expendable';
         this.heal = 15;
-        this.chargeTime = 1 / 60 / 5;
+        this.chargeTime = 1 / 60 / 3;
     }
 }
 
-module.exports = { items, Item, PistolItem, MachineGunItem, ShotGunItem, BandageItem };
+class MonsterEnergyItem extends Item {
+    constructor(x, y) {
+        super('MonsterEnergy', x, y);
+        this.itemType = 'Expendable';
+        this.shield = 20;
+        this.chargeTime = 1 / 60 / 4;
+    }
+}
+
+module.exports = {
+    items, Item, PistolItem, MachineGunItem, ShotGunItem
+    , BandageItem, MonsterEnergyItem
+};
