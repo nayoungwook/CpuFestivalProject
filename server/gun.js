@@ -21,7 +21,7 @@ const shotGun = {
     shotSpeed: 0.02,
     shotRange: 550,
     bulletSpeed: 30,
-    damage: 5,
+    damage: 3,
     gap: 50 / 5,
 };
 

@@ -5,13 +5,14 @@ const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
 
-const { createLandforms } = require('./server/gameServer');
+const { createLandforms, MAP_SCALE } = require('./server/gameServer');
 const { Mathf } = require('./server/neko');
 const { Bush, Rock } = require('./server/mapObject');
 const { Bullet, bullets } = require('./server/bullet');
 const { createUserKey } = require('./server/keyCreator');
 const { Player, users } = require('./server/player');
-const { items, PistolItem, MachineGunItem, ShotGunItem, BandageItem, MonsterEnergyItem, AidKitItem } = require('./server/item');
+const { items, PistolItem, MachineGunItem, ShotGunItem, BandageItem, MonsterEnergyItem, AidKitItem, GrenadeItem } = require('./server/item');
+const { throwableObjects, Grenade } = require('./server/throwableObject');
 
 app.use(express.static('static'));
 app.use(express.static('static/assets'));
@@ -22,7 +23,7 @@ app.get('/', (req, res) => {
 });
 
 const MS = 100;
-const DAMAGE_CIRCLE_RADIUS = 5000;
+const DAMAGE_CIRCLE_RADIUS = MAP_SCALE / 2;
 
 var damageCircle = { position: { x: 0, y: 0 }, radius: DAMAGE_CIRCLE_RADIUS };
 var landforms = [];
@@ -32,8 +33,8 @@ io.on('connection', (socket) => {
         let key = createUserKey(users);
         io.emit('enterGameRoomConfirmed', { key: key });
 
-        //        users.set(key, new Player(key, packet.name, Math.round(Math.random() * 8000) - 4000, Math.round(Math.random() * 8000) - 4000));
-        users.set(key, new Player(key, packet.name, 0, 0));
+        users.set(key, new Player(key, packet.name, Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2));
+        //    users.set(key, new Player(key, packet.name, 0, 0));
     });
     socket.on("ping", (callback) => {
         callback();
@@ -56,7 +57,7 @@ io.on('connection', (socket) => {
 
             let userItems = user.items;
 
-            userItems.splice(userItems.indexOf(item), 1);
+            userItems[(userItems.indexOf(item))] = null;
             let _outItem = item;
             let _outDir = Math.random() * Math.PI * 2;
 
@@ -76,6 +77,10 @@ function updateGame() {
         bullets[i].movement(bullets, users, landforms, MS, io);
     }
 
+    for (let i = 0; i < throwableObjects.length; i++) {
+        throwableObjects[i].movement(throwableObjects, users, landforms, MS, io);
+    }
+
     for (const [key, value] of users.entries()) {
         value.tick(users, damageCircle, io, MS, items);
     }
@@ -93,7 +98,8 @@ function sendGamePackets() {
     data.bullets = bullets;
     data.landforms = landforms;
     data.items = items;
-
+    data.throwableObjects = throwableObjects;
+    data.MAP_SCALE = MAP_SCALE;
     data.damageCircle = damageCircle;
 
     var gameData = new Object();
@@ -118,6 +124,7 @@ function sendGamePackets() {
         userData.currentItem = value.currentItem;
         userData.expendableCharge = value.expendableCharge;
         userData.shield = value.shield;
+        userData.selectedSlot = value.selectedSlot;
 
         data.users.push(userData);
     }
@@ -138,15 +145,20 @@ function decreaseDamageCircle() {
 function initialize() {
     createLandforms(landforms, MS);
 
-    items.push(new PistolItem(0, 0));
-    items.push(new MachineGunItem(Math.round(Math.random() * 8000) - 4000, Math.round(Math.random() * 8000) - 4000));
-    items.push(new ShotGunItem(Math.round(Math.random() * 8000) - 4000, Math.round(Math.random() * 8000) - 4000));
-    items.push(new BandageItem(0, 0));
-    items.push(new AidKitItem(0, 0));
-    items.push(new MonsterEnergyItem(0, 0));
-    items.push(new MonsterEnergyItem(0, 0));
-    items.push(new MonsterEnergyItem(0, 0));
-    items.push(new MonsterEnergyItem(0, 0));
+    for (let i = 0; i < 2; i++) {
+        items.push(new PistolItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
+        items.push(new MachineGunItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
+        items.push(new ShotGunItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
+        items.push(new BandageItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
+        items.push(new BandageItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
+        items.push(new AidKitItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
+        items.push(new MonsterEnergyItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
+        items.push(new MonsterEnergyItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
+        items.push(new MonsterEnergyItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
+        items.push(new GrenadeItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
+        items.push(new GrenadeItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
+        items.push(new GrenadeItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
+    }
 }
 
 function update() {

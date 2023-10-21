@@ -14,6 +14,7 @@ var bullets = [];
 var particles = [];
 var items = [];
 var myItems = [];
+var throwableObjects = [];
 
 var mouseDir = 0;
 var mouseClick = false;
@@ -45,6 +46,8 @@ var targetDamageCircle;
 var myPlayer = undefined;
 var zoomRatio = 0;
 var globalPacket = null;
+
+var MAP_SCALE = 0;
 
 var startedTouches = [];
 var touches = [];
@@ -161,6 +164,9 @@ class GameScene extends Scene {
 
         this.monsterEnergyItemImage = new Image();
         this.monsterEnergyItemImage.src = 'assets/monsterEnergyItem.png';
+
+        this.grenadeItemImage = new Image();
+        this.grenadeItemImage.src = 'assets/grenadeItem.png';
     }
 
     initializeGame = () => {
@@ -401,6 +407,10 @@ class GameScene extends Scene {
                 else if (currentItem.type == 'ShotGun') {
                     ctx.drawImage(this.shotGunHandImage, -toolCoord.renderWidth / 2, -toolCoord.renderHeight / 2, toolCoord.renderWidth, toolCoord.renderHeight);
                 }
+            } else {
+                let toolCoord = Mathf.getRenderInfo(user.gunPosition, MS, MS);
+                if (this.getItemImage(user.items[user.selectedSlot - 1]) != null)
+                    ctx.drawImage(this.getItemImage(user.items[user.selectedSlot - 1]), -toolCoord.renderWidth / 2, -toolCoord.renderHeight / 2, toolCoord.renderWidth, toolCoord.renderHeight);
             }
         } else {
 
@@ -493,7 +503,7 @@ class GameScene extends Scene {
     }
 
     renderField = () => {
-        let coord = Mathf.getRenderInfo(new Vector(-5000, -5000), 5000 * 2, 5000 * 2);
+        let coord = Mathf.getRenderInfo(new Vector(-MAP_SCALE / 2, -MAP_SCALE / 2), MAP_SCALE, MAP_SCALE);
         ctx.drawImage(this.field, coord.renderPosition.x, coord.renderPosition.y, coord.renderWidth, coord.renderHeight);
     }
 
@@ -514,6 +524,8 @@ class GameScene extends Scene {
             itemImage = this.aidKitItemImage;
         } else if (item.type == 'MonsterEnergy') {
             itemImage = this.monsterEnergyItemImage;
+        } else if (item.type == 'Grenade') {
+            itemImage = this.grenadeItemImage;
         }
 
         return itemImage;
@@ -564,11 +576,11 @@ class GameScene extends Scene {
 
             ctx.fillStyle = 'rgb(39, 39, 54)';
             ctx.beginPath();
-            ctx.roundRect(textureCoord.renderPosition.x - MS / 2 - 5, textureCoord.renderPosition.y - MS / 2 - 5, MS + 10, MS / 5 + 10, [5]);
+            ctx.roundRect(textureCoord.renderPosition.x - MS / 2 - 5, textureCoord.renderPosition.y - MS / 3 * 2 - 5, MS + 10, MS / 5 + 10, [5]);
             ctx.fill();
 
             ctx.fillStyle = 'rgb(39, 39, 54)';
-            ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS / 2, MS, MS / 5);
+            ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS / 3 * 2, MS, MS / 5);
 
             if (users[i].fullHealth != 0) {
                 let _healthBar = (MS * users[i].health) / users[i].fullHealth;
@@ -576,10 +588,10 @@ class GameScene extends Scene {
                 let _shieldBar = (MS * users[i].shield) / users[i].fullHealth;
 
                 ctx.fillStyle = 'rgb(255, 100, 154)';
-                ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS / 2, _healthBar, MS / 5);
+                ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS / 3 * 2, _healthBar, MS / 5);
 
                 ctx.fillStyle = 'rgb(100, 255, 120)';
-                ctx.fillRect(textureCoord.renderPosition.x - MS / 2 + _healthBar, textureCoord.renderPosition.y - MS / 2, _shieldBar, MS / 5);
+                ctx.fillRect(textureCoord.renderPosition.x - MS / 2 + _healthBar, textureCoord.renderPosition.y - MS / 3 * 2, _shieldBar, MS / 5);
             }
 
             if (users[i].expendableCharge != 0) {
@@ -618,6 +630,26 @@ class GameScene extends Scene {
         }
     }
 
+    renderThrowableObjects = () => {
+        for (let i = 0; i < throwableObjects.length; i++) {
+
+            let objectImage = null;
+
+            if (throwableObjects[i].type == 'Grenade') {
+                objectImage = this.grenadeItemImage;
+            }
+
+            if (objectImage == null) continue;
+
+            let textureCoord = Mathf.getRenderInfo(throwableObjects[i].position, MS, MS);
+            ctx.save();
+            ctx.translate(textureCoord.renderPosition.x, textureCoord.renderPosition.y);
+            ctx.rotate(throwableObjects[i].visualDir);
+            ctx.drawImage(objectImage, -textureCoord.renderWidth / 2, -textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
+            ctx.restore();
+        }
+    }
+
     render = () => {
         ctx.fillStyle = 'rgb(120, 255, 150)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -627,6 +659,7 @@ class GameScene extends Scene {
         this.renderLandforms();
         this.renderBullets();
         this.renderItems();
+        this.renderThrowableObjects();
 
         this.renderPlayers();
 
@@ -661,10 +694,11 @@ socket.on('gameData', (packet) => {
     globalPacket = packet;
 
     MS = packet.gameData.MS;
+    MAP_SCALE = packet.MAP_SCALE;
 
     usersCache = packet.users;
     users = packet.users;
-    //items = packet.items;
+    throwableObjects = packet.throwableObjects;
 
     landforms = packet.landforms;
 
@@ -698,4 +732,10 @@ socket.on('particleShield', (packet) => {
 socket.on('particleBullet', (packet) => {
     for (let i = 0; i < Math.round(Math.random() * 3) + 2; i++)
         particles.push(new BulletParticle(packet.position.x, packet.position.y, packet.radius));
+});
+
+socket.on('explosion', (packet) => {
+    for (let i = 0; i < 100; i++) {
+        particles.push(new Explosion(packet.position.x, packet.position.y, Math.random() * 30 + 20, Math.random() * 30 + 20));
+    }
 });

@@ -13,8 +13,8 @@ class Bullet {
         this.damage = owner.status.gun.damage;
         this.bulletRadius = 30 / 2;
 
-        this.position.x += Math.cos(this.dir) * MS;
-        this.position.y += Math.sin(this.dir) * MS;
+        this.position.x += Math.cos(this.dir) * MS / 2 * 3;
+        this.position.y += Math.sin(this.dir) * MS / 2 * 3;
     }
 
     delete = (bullets) => {

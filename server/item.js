@@ -41,8 +41,17 @@ class Item {
 
         for (const [key, value] of users.entries()) {
             let _dist = Mathf.getDistance(this.position, value.position);
+
+            let itemCount = 0;
+            let newItemIndex = -1;
+
+            for (let i = 0; i < value.items.length; i++) {
+                if (value.items[i] != null) itemCount++;
+                if (value.items[i] == null && newItemIndex == -1) newItemIndex = i;
+            }
+
             if (_dist <= MS) {
-                if (value.items.length >= 3) {
+                if (itemCount >= 3) {
                     if (_dist == 0) {
                         this.position.x += 1;
                         this.position.y += 1;
@@ -55,7 +64,7 @@ class Item {
                     value.position.x += (value.position.x - this.position.x) / 20;
                     value.position.y += (value.position.y - this.position.y) / 20;
                 } else {
-                    value.items.push(this);
+                    value.items[newItemIndex] = this;
                     items.splice(items.indexOf(this), 1);
                 }
             }
@@ -133,7 +142,15 @@ class MonsterEnergyItem extends Item {
     }
 }
 
+class GrenadeItem extends Item {
+    constructor(x, y) {
+        super('Grenade', x, y);
+        this.itemType = 'Throwable';
+        this.dmg = 10;
+    }
+}
+
 module.exports = {
     items, Item, PistolItem, MachineGunItem, ShotGunItem
-    , BandageItem, AidKitItem, MonsterEnergyItem
+    , BandageItem, AidKitItem, MonsterEnergyItem, GrenadeItem
 };

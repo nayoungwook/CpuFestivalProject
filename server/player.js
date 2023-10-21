@@ -1,6 +1,8 @@
 const { Bullet } = require('./bullet');
 const { pistol, machineGun, shotGun } = require('./gun');
+const { GrenadeItem } = require('./item');
 const { Mathf } = require('./neko');
+const { throwableObjects, Grenade } = require('./throwableObject');
 
 var users = new Map();
 
@@ -14,7 +16,7 @@ class Player {
 
         this.gunPosition = { x: 0, y: 0 };
 
-        this.items = [];
+        this.items = [null, null, null];
         this.selectedSlot = 0;
         this.currentItem = null;
 
@@ -29,7 +31,7 @@ class Player {
         this.useTimer = 0;
 
         this.fullHealth = 50;
-        this.health = this.fullHealth / 2;
+        this.health = this.fullHealth;
         this.shield = 0;
 
         this.dir = 0;
@@ -81,9 +83,10 @@ class Player {
         }
 
         if (this.health <= 0) {
+            let outItems = [];
             for (let i = 0; i < this.items.length; i++) {
                 let item = this.items[i];
-                if (item == null) return;
+                if (item == null) continue;
 
                 let _outItem = item;
                 let _outDir = Math.random() * Math.PI * 2;
@@ -93,12 +96,13 @@ class Player {
 
                 _outItem.position.x = this.position.x + Math.cos(_outDir) * MS * 1.5;
                 _outItem.position.y = this.position.y + Math.sin(_outDir) * MS * 1.5;
+                outItems.push(_outItem);
             }
-            for (let i = 0; i < this.items.length; i++) {
-                items.push(this.items[i]);
+            for (let i = 0; i < outItems.length; i++) {
+                items.push(outItems[i]);
             }
 
-            this.items = [];
+            this.items = [null, null, null];
 
             io.emit('playerDied', { user: this, key: this.key });
             users.delete(this.key);
@@ -220,8 +224,23 @@ class Player {
 
             let userItems = this.items;
 
-            userItems.splice(userItems.indexOf(item), 1);
+            userItems[userItems.indexOf(item)] = null;
+            this.currentItem = null;
         }
+    }
+
+    useThrowableObject = (packet, throwableObjects, MS, items) => {
+        let item = this.items[this.selectedSlot - 1];
+
+        if (item == null) return;
+
+        if (this.currentItem.type == 'Grenade') {
+            throwableObjects.push(new Grenade(this, this.position.x, this.position.y, packet.gunDir, MS));
+        }
+
+        let userItems = this.items;
+
+        userItems[(userItems.indexOf(item))] = null;
     }
 
     use = (packet, bullets, MS, items) => {
@@ -231,10 +250,16 @@ class Player {
             this.useGun(packet, bullets, MS, items);
         } else if (this.currentItem.itemType == 'Expendable') {
             this.useExpendable(packet, bullets, MS, items);
+        } else if (this.currentItem.itemType == 'Throwable') {
+            this.useThrowableObject(packet, throwableObjects, MS, items);
         }
     }
 
     useUpdate = (packet, bullets, MS, items) => {
+
+        if (this.currentItem != null && this.currentItem.itemType == 'Throwable')
+            this.useTimer = 1;
+
         let ableToUse = this.useTimer >= 1 && packet.use;
         this.shotVisualDir = false;
 
