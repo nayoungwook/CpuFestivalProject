@@ -11,7 +11,7 @@ const { Bush, Rock } = require('./server/mapObject');
 const { Bullet, bullets } = require('./server/bullet');
 const { createUserKey } = require('./server/keyCreator');
 const { Player, users } = require('./server/player');
-const { items, PistolItem, MachineGunItem, ShotGunItem, BandageItem, MonsterEnergyItem } = require('./server/item');
+const { items, PistolItem, MachineGunItem, ShotGunItem, BandageItem, MonsterEnergyItem, AidKitItem } = require('./server/item');
 
 app.use(express.static('static'));
 app.use(express.static('static/assets'));
@@ -117,6 +117,7 @@ function sendGamePackets() {
         userData.items = value.items;
         userData.currentItem = value.currentItem;
         userData.expendableCharge = value.expendableCharge;
+        userData.shield = value.shield;
 
         data.users.push(userData);
     }
@@ -137,10 +138,14 @@ function decreaseDamageCircle() {
 function initialize() {
     createLandforms(landforms, MS);
 
-    items.push(new PistolItem(Math.round(Math.random() * 8000) - 4000, Math.round(Math.random() * 8000) - 4000));
+    items.push(new PistolItem(0, 0));
     items.push(new MachineGunItem(Math.round(Math.random() * 8000) - 4000, Math.round(Math.random() * 8000) - 4000));
     items.push(new ShotGunItem(Math.round(Math.random() * 8000) - 4000, Math.round(Math.random() * 8000) - 4000));
     items.push(new BandageItem(0, 0));
+    items.push(new AidKitItem(0, 0));
+    items.push(new MonsterEnergyItem(0, 0));
+    items.push(new MonsterEnergyItem(0, 0));
+    items.push(new MonsterEnergyItem(0, 0));
     items.push(new MonsterEnergyItem(0, 0));
 }
 

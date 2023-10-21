@@ -54,6 +54,10 @@ class Player {
 
         this.currentItem = this.items[this.selectedSlot - 1];
 
+        if (this.health + this.shield >= this.fullHealth) {
+            this.shield = this.fullHealth - this.health;
+        }
+
         if (this.currentItem != null) {
             if (this.currentItem.itemType == 'Gun') {
                 this.gun = this.currentItem.gunData;
@@ -200,11 +204,14 @@ class Player {
                 if (this.health >= this.fullHealth) {
                     this.health = this.fullHealth;
                 }
+            } else if (this.currentItem.type == 'AidKit') {
+                this.health += this.currentItem.heal;
+
+                if (this.health >= this.fullHealth) {
+                    this.health = this.fullHealth;
+                }
             } else if (this.currentItem.type == 'MonsterEnergy') {
                 this.shield += this.currentItem.shield;
-                if (this.shield >= this.fullHealth) {
-                    this.shield = this.fullHealth;
-                }
             }
 
             let item = this.items[this.selectedSlot - 1];

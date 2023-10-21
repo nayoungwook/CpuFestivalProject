@@ -156,6 +156,9 @@ class GameScene extends Scene {
         this.bandageItemImage = new Image();
         this.bandageItemImage.src = 'assets/bandageItem.png';
 
+        this.aidKitItemImage = new Image();
+        this.aidKitItemImage.src = 'assets/aidKitItem.png';
+
         this.monsterEnergyItemImage = new Image();
         this.monsterEnergyItemImage.src = 'assets/monsterEnergyItem.png';
     }
@@ -248,7 +251,7 @@ class GameScene extends Scene {
         this.lastUpdate = now;
         this.frame = Math.round(1000 / dt);
 
-        zoomRatio = (canvas.width / 1920) / 2;
+        zoomRatio = (canvas.width / 1920) / 1.5;
         let padSize = 100 * zoomRatio;
 
         this.padPosition.x = padSize / 5 * 14;
@@ -507,6 +510,8 @@ class GameScene extends Scene {
             itemImage = this.shotGunItemImage;
         } else if (item.type == 'Bandage') {
             itemImage = this.bandageItemImage;
+        } else if (item.type == 'AidKit') {
+            itemImage = this.aidKitItemImage;
         } else if (item.type == 'MonsterEnergy') {
             itemImage = this.monsterEnergyItemImage;
         }
@@ -565,15 +570,23 @@ class GameScene extends Scene {
             ctx.fillStyle = 'rgb(39, 39, 54)';
             ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS / 2, MS, MS / 5);
 
-            ctx.fillStyle = 'rgb(255, 100, 154)';
-            if (users[i].fullHealth != 0)
-                ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS / 2, (MS * users[i].health) / users[i].fullHealth, MS / 5);
+            if (users[i].fullHealth != 0) {
+                let _healthBar = (MS * users[i].health) / users[i].fullHealth;
+                let _healthBarMargin = MS - _healthBar;
+                let _shieldBar = (MS * users[i].shield) / users[i].fullHealth;
+
+                ctx.fillStyle = 'rgb(255, 100, 154)';
+                ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS / 2, _healthBar, MS / 5);
+
+                ctx.fillStyle = 'rgb(100, 255, 120)';
+                ctx.fillRect(textureCoord.renderPosition.x - MS / 2 + _healthBar, textureCoord.renderPosition.y - MS / 2, _shieldBar, MS / 5);
+            }
 
             if (users[i].expendableCharge != 0) {
                 ctx.fillStyle = 'rgb(255, 255, 245)';
                 ctx.textAlign = 'center';
                 ctx.font = "bold 20px blackHanSans";
-                ctx.fillText('using (' + Math.round(users[i].expendableCharge * 100) + '%)', textureCoord.renderPosition.x, textureCoord.renderPosition.y - MS / 3 * 2);
+                ctx.fillText('(' + Math.round(users[i].expendableCharge * 100) + '%)', textureCoord.renderPosition.x, textureCoord.renderPosition.y - MS / 3 * 2);
             }
         }
 
@@ -675,6 +688,11 @@ socket.on('playerDied', (packet) => {
 socket.on('particleBlood', (packet) => {
     for (let i = 0; i < Math.round(Math.random()) + 2; i++)
         particles.push(new BloodParticle(packet.position.x, packet.position.y, 20, 30));
+});
+
+socket.on('particleShield', (packet) => {
+    for (let i = 0; i < Math.round(Math.random()) + 2; i++)
+        particles.push(new ShieldParticle(packet.position.x, packet.position.y, 20, 30));
 });
 
 socket.on('particleBullet', (packet) => {
