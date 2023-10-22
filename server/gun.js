@@ -27,7 +27,7 @@ const shotGun = {
 
 const grenadeLauncher = {
     name: 'grenadeLauncher',
-    shotSpeed: 0.005,
+    shotSpeed: 0.01,
     shotRange: 550,
     bulletSpeed: 30,
     damage: 3,
