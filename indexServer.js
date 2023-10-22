@@ -11,8 +11,10 @@ const { Bush, Rock } = require('./server/mapObject');
 const { Bullet, bullets } = require('./server/bullet');
 const { createUserKey } = require('./server/keyCreator');
 const { Player, users } = require('./server/player');
-const { items, PistolItem, MachineGunItem, ShotGunItem, BandageItem, MonsterEnergyItem, AidKitItem, GrenadeItem } = require('./server/item');
+const { items, PistolItem, MachineGunItem, ShotGunItem, BandageItem, MonsterEnergyItem, AidKitItem, GrenadeItem, HalloweenGrenadeItem, GrenadeLauncherItem } = require('./server/item');
 const { throwableObjects, Grenade } = require('./server/throwableObject');
+const { Supply, supplies } = require('./server/supply');
+const { grenadeLauncher } = require('./server/gun');
 
 app.use(express.static('static'));
 app.use(express.static('static/assets'));
@@ -21,6 +23,8 @@ app.use(express.static('static/assets'));
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/static/index.html');
 });
+
+module.exports = { io };
 
 const MS = 100;
 const DAMAGE_CIRCLE_RADIUS = MAP_SCALE / 2;
@@ -34,7 +38,7 @@ io.on('connection', (socket) => {
         io.emit('enterGameRoomConfirmed', { key: key });
 
         users.set(key, new Player(key, packet.name, Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2));
-        //    users.set(key, new Player(key, packet.name, 0, 0));
+        //  users.set(key, new Player(key, packet.name, 0, 0));
     });
     socket.on("ping", (callback) => {
         callback();
@@ -42,7 +46,7 @@ io.on('connection', (socket) => {
     socket.on('userInput', (packet) => {
         if (users.has(packet.key)) {
             // update user with packet
-            users.get(packet.key).movement({ joystickDir: packet.joystickDir, move: packet.move }, landforms, MS);
+            users.get(packet.key).movement({ joystickDir: packet.joystickDir, move: packet.move }, landforms, supplies, MS);
             users.get(packet.key).useUpdate({ gunDir: packet.gunDir, use: packet.use }, bullets, MS, items);
             users.get(packet.key).selectedSlot = packet.selectedSlot;
         }
@@ -72,13 +76,21 @@ io.on('connection', (socket) => {
     });
 });
 
+function playSound(src, position) {
+    io.emit('playSound', { src: src, position: position });
+}
+
 function updateGame() {
     for (let i = 0; i < bullets.length; i++) {
-        bullets[i].movement(bullets, users, landforms, MS, io);
+        bullets[i].movement(bullets, users, landforms, supplies, MS, io);
     }
 
     for (let i = 0; i < throwableObjects.length; i++) {
-        throwableObjects[i].movement(throwableObjects, users, landforms, MS, io);
+        throwableObjects[i].movement(throwableObjects, users, landforms, supplies, MS, io);
+    }
+
+    for (let i = 0; i < supplies.length; i++) {
+        supplies[i].tick();
     }
 
     for (const [key, value] of users.entries()) {
@@ -101,6 +113,8 @@ function sendGamePackets() {
     data.throwableObjects = throwableObjects;
     data.MAP_SCALE = MAP_SCALE;
     data.damageCircle = damageCircle;
+
+    data.supplies = supplies;
 
     var gameData = new Object();
     gameData.MS = MS;
@@ -144,6 +158,9 @@ function decreaseDamageCircle() {
 
 function initialize() {
     createLandforms(landforms, MS);
+    decreaseDamageCircle();
+
+    //supplies.push(new Supply(MS, 0, 0));
 
     for (let i = 0; i < 2; i++) {
         items.push(new PistolItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
@@ -158,6 +175,9 @@ function initialize() {
         items.push(new GrenadeItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
         items.push(new GrenadeItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
         items.push(new GrenadeItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
+        items.push(new HalloweenGrenadeItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
+        items.push(new HalloweenGrenadeItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
+        items.push(new GrenadeLauncherItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
     }
 }
 
@@ -171,5 +191,6 @@ server.listen(3000, async () => {
     initialize();
 });
 
-decreaseDamageCircle();
+module.exports = { playSound };
+
 setInterval(update, 1000 / 60);

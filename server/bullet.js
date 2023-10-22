@@ -18,19 +18,30 @@ class Bullet {
     }
 
     delete = (bullets) => {
+        let { playSound } = require('../indexServer');
+        playSound('BulletHit', this.position);
         bullets.splice(bullets.indexOf(this), 1);
     }
 
-    movement = (bullets, users, landforms, MS, io) => {
+    movement = (bullets, users, landforms, supplies, MS, io) => {
         this.position.x += Math.cos(this.dir) * this.speed;
         this.position.y += Math.sin(this.dir) * this.speed;
 
         for (let i = 0; i < landforms.length; i++) {
             if (landforms[i].type == 'rock') {
-                if (Mathf.getDistance(this.position, landforms[i].position) <= (MS + MS * 2) / 2) {
+                if (Mathf.getDistance(this.position, landforms[i].position) <= (this.bulletRadius * 2 + MS * 2) / 2) {
                     io.emit('particleBullet', { position: this.position, radius: this.bulletRadius });
                     this.delete(bullets);
                 }
+            }
+        }
+
+        for (let i = 0; i < supplies.length; i++) {
+            if (Math.abs(supplies[i].position.x - this.position.x) <= (this.bulletRadius * 2 + supplies[i].width) / 2 &&
+                Math.abs(supplies[i].position.y - this.position.y) <= (this.bulletRadius * 2 + supplies[i].height) / 2) {
+                supplies[i].health -= this.damage;
+                io.emit('particleBullet', { position: this.position, radius: this.bulletRadius });
+                this.delete(bullets);
             }
         }
 

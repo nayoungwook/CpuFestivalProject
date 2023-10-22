@@ -1,4 +1,4 @@
-const { pistol, shotGun, machineGun } = require("./gun");
+const { pistol, shotGun, machineGun, grenadeLauncher } = require("./gun");
 const { Mathf } = require("./neko");
 
 var items = [];
@@ -115,12 +115,20 @@ class ShotGunItem extends Item {
     }
 }
 
+class GrenadeLauncherItem extends Item {
+    constructor(x, y) {
+        super('GrenadeLauncher', x, y);
+        this.itemType = 'Gun';
+        this.gunData = grenadeLauncher;
+    }
+}
+
 class BandageItem extends Item {
     constructor(x, y) {
         super('Bandage', x, y);
         this.itemType = 'Expendable';
         this.heal = 10;
-        this.chargeTime = 1 / 60 / 3;
+        this.chargeTime = 1 / 60 / 4;
     }
 }
 
@@ -138,7 +146,7 @@ class MonsterEnergyItem extends Item {
         super('MonsterEnergy', x, y);
         this.itemType = 'Expendable';
         this.shield = 10;
-        this.chargeTime = 1 / 60 / 4;
+        this.chargeTime = 1 / 60 / 5;
     }
 }
 
@@ -146,11 +154,17 @@ class GrenadeItem extends Item {
     constructor(x, y) {
         super('Grenade', x, y);
         this.itemType = 'Throwable';
-        this.dmg = 10;
+    }
+}
+
+class HalloweenGrenadeItem extends Item {
+    constructor(x, y) {
+        super('HalloweenGrenade', x, y);
+        this.itemType = 'Throwable';
     }
 }
 
 module.exports = {
-    items, Item, PistolItem, MachineGunItem, ShotGunItem
-    , BandageItem, AidKitItem, MonsterEnergyItem, GrenadeItem
+    items, Item, PistolItem, MachineGunItem, ShotGunItem, GrenadeLauncherItem
+    , BandageItem, AidKitItem, MonsterEnergyItem, GrenadeItem, HalloweenGrenadeItem
 };

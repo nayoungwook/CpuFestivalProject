@@ -19,9 +19,9 @@ var Mathf = /** @class */ (function () {
         result.renderPosition.y = position.y - Camera.position.y - (yy + _zy);
         var outScreenSize = Math.sqrt(result.renderWidth * result.renderWidth + result.renderHeight * result.renderHeight);
         result.inScreen = true;
-        if (position.x < -outScreenSize || position.x > App.canvas.width + outScreenSize)
+        if (result.renderPosition.x + result.renderWidth / 2 < 0 || result.renderPosition.x - result.renderWidth / 2 > canvas.width)
             result.inScreen = false;
-        if (position.y < -outScreenSize || position.y > App.canvas.width + outScreenSize)
+        if (result.renderPosition.y + result.renderHeight / 2 < 0 || result.renderPosition.y - result.renderHeight / 2 > canvas.height)
             result.inScreen = false;
         return result;
     }

@@ -2,7 +2,7 @@ const { Bullet } = require('./bullet');
 const { pistol, machineGun, shotGun } = require('./gun');
 const { GrenadeItem } = require('./item');
 const { Mathf } = require('./neko');
-const { throwableObjects, Grenade } = require('./throwableObject');
+const { throwableObjects, Grenade, HalloweenGrenade } = require('./throwableObject');
 
 var users = new Map();
 
@@ -109,7 +109,7 @@ class Player {
         }
     }
 
-    checkCollision = (landforms, MS) => {
+    checkCollision = (landforms, supplies, MS) => {
         for (let i = 0; i < landforms.length; i++) {
             if (landforms[i].type == 'rock') {
                 if (Mathf.getDistance(this.position, landforms[i].position) <= (MS + MS * 2) / 2) {
@@ -117,56 +117,84 @@ class Player {
                 }
             }
         }
+
+        for (let i = 0; i < supplies.length; i++) {
+            if (Math.abs(supplies[i].position.x - this.position.x) <= (MS + supplies[i].width) / 2 &&
+                Math.abs(supplies[i].position.y - this.position.y) <= (MS + supplies[i].height) / 2) {
+                return supplies[i];
+            }
+        }
+
         return null;
     }
 
-    movement = (packet, landforms, MS) => {
+    movement = (packet, landforms, supplies, MS) => {
         if (packet.move) {
             this.dir = packet.joystickDir;
 
             this.targetPosition.x += Math.round(Math.cos(packet.joystickDir) * this.moveSpeed);
             this.targetPosition.y += Math.round(Math.sin(packet.joystickDir) * this.moveSpeed);
 
-            let col = this.checkCollision(landforms, MS)
+            let col = this.checkCollision(landforms, supplies, MS)
             if (col != null) {
-                this.targetPosition.x += (this.targetPosition.x - col.position.x) / 10;
-                this.targetPosition.y += (this.targetPosition.y - col.position.y) / 10;
+                this.targetPosition.x += (this.targetPosition.x - col.position.x) / 20;
+                this.targetPosition.y += (this.targetPosition.y - col.position.y) / 20;
             }
         }
 
         if (!this.shotVisualDir)
             this.visualDir = this.dir;
 
-        if (this.gun.name == 'pistol') {
-            this.gunPosition = {
-                x: this.position.x + Math.cos(this.visualDir) * (MS + this.reboundValue),
-                y: this.position.y + Math.sin(this.visualDir) * (MS + this.reboundValue),
-            }
+        if (this.currentItem != null && this.currentItem.itemType == 'Gun') {
 
-            this.gunSize = {
-                width: MS, height: MS
-            }
-        }
+            if (this.gun.name == 'pistol') {
+                this.gunPosition = {
+                    x: this.position.x + Math.cos(this.visualDir) * (MS + this.reboundValue),
+                    y: this.position.y + Math.sin(this.visualDir) * (MS + this.reboundValue),
+                }
 
-        if (this.gun.name == 'machineGun') {
+                this.gunSize = {
+                    width: MS, height: MS
+                }
+            }
+            else if (this.gun.name == 'machineGun') {
+                this.gunPosition = {
+                    x: this.position.x + Math.cos(this.visualDir) * (MS / 3 + this.reboundValue) + Math.cos(this.visualDir + Math.PI / 2) * MS / 2,
+                    y: this.position.y + Math.sin(this.visualDir) * (MS / 3 + this.reboundValue) + Math.sin(this.visualDir + Math.PI / 2) * MS / 2,
+                }
+
+                this.gunSize = {
+                    width: MS * 8.4 / 5, height: MS * 5 / 5
+                }
+            }
+            else if (this.gun.name == 'shotGun') {
+                this.gunPosition = {
+                    x: this.position.x + Math.cos(this.visualDir) * (MS / 3 + this.reboundValue) + Math.cos(this.visualDir + Math.PI / 2) * MS / 2,
+                    y: this.position.y + Math.sin(this.visualDir) * (MS / 3 + this.reboundValue) + Math.sin(this.visualDir + Math.PI / 2) * MS / 2,
+                }
+
+                this.gunSize = {
+                    width: MS * 8.4 / 5, height: MS * 5 / 5
+                }
+            }
+            else if (this.gun.name == 'grenadeLauncher') {
+                this.gunPosition = {
+                    x: this.position.x + Math.cos(this.visualDir) * (MS / 3 + this.reboundValue) + Math.cos(this.visualDir + Math.PI / 2) * MS / 2,
+                    y: this.position.y + Math.sin(this.visualDir) * (MS / 3 + this.reboundValue) + Math.sin(this.visualDir + Math.PI / 2) * MS / 2,
+                }
+
+                this.gunSize = {
+                    width: MS * 8.4 / 5, height: MS * 5 / 5
+                }
+            }
+        } else {
+
             this.gunPosition = {
                 x: this.position.x + Math.cos(this.visualDir) * (MS / 3 + this.reboundValue) + Math.cos(this.visualDir + Math.PI / 2) * MS / 2,
                 y: this.position.y + Math.sin(this.visualDir) * (MS / 3 + this.reboundValue) + Math.sin(this.visualDir + Math.PI / 2) * MS / 2,
             }
-
             this.gunSize = {
-                width: MS * 8.4 / 5, height: MS * 5 / 5
-            }
-        }
-
-        if (this.gun.name == 'shotGun') {
-            this.gunPosition = {
-                x: this.position.x + Math.cos(this.visualDir) * (MS / 3 + this.reboundValue) + Math.cos(this.visualDir + Math.PI / 2) * MS / 2,
-                y: this.position.y + Math.sin(this.visualDir) * (MS / 3 + this.reboundValue) + Math.sin(this.visualDir + Math.PI / 2) * MS / 2,
-            }
-
-            this.gunSize = {
-                width: MS * 8.4 / 5, height: MS * 5 / 5
+                width: MS, MS
             }
         }
 
@@ -187,19 +215,49 @@ class Player {
     useGun = (packet, bullets, MS, items) => {
         this.reboundValue = -MS / 10;
         if (this.gun != null) {
-            if (this.gun.name != 'shotGun') {
+            if (this.gun.name == 'pistol' || this.gun.name == 'machineGun') {
+                let { playSound } = require('../indexServer');
+                playSound('Gun', this.gunPosition);
+
                 bullets.push(new Bullet(this, packet.gunDir, MS));
-            } else {
+            } else if (this.gun.name == 'shotGun') {
+                let { playSound } = require('../indexServer');
+                playSound('ShotGun', this.gunPosition);
+
                 for (let i = 0; i < 6; i++)
                     bullets.push(new Bullet(this, packet.gunDir + Math.random() / 2 - 0.5 / 2, MS));
+            } else if (this.gun.name == 'grenadeLauncher') {
+                let { playSound } = require('../indexServer');
+                playSound('Grenade', this.position);
+
+                if (Math.round(Math.random() * 20) == 0) {
+                    throwableObjects.push(new HalloweenGrenade(this, this.gunPosition.x, this.gunPosition.y, packet.gunDir, MS));
+                } else {
+                    throwableObjects.push(new Grenade(this, this.gunPosition.x, this.gunPosition.y, packet.gunDir, MS));
+                }
             }
         }
         this.useTimer = 0;
     }
 
     useExpendable = (packet, bullets, MS, items) => {
+
+        if (this.expendableCharge == 0) {
+
+            if (this.currentItem.type == 'Bandage') {
+                let { playSound } = require('../indexServer');
+                playSound('Bandage', this.position);
+            } else if (this.currentItem.type == 'AidKit') {
+
+            } else if (this.currentItem.type == 'MonsterEnergy') {
+                let { playSound } = require('../indexServer');
+                playSound('Drink', this.position);
+            }
+        }
+
         this.expendableCharge += this.currentItem.chargeTime;
         this.moveSpeed = this.status.moveSpeed / 2;
+
         if (this.expendableCharge >= 1) {
             this.expendableCharge = 0;
 
@@ -235,7 +293,14 @@ class Player {
         if (item == null) return;
 
         if (this.currentItem.type == 'Grenade') {
+            let { playSound } = require('../indexServer');
+            playSound('Grenade', this.position);
             throwableObjects.push(new Grenade(this, this.position.x, this.position.y, packet.gunDir, MS));
+        }
+        else if (this.currentItem.type == 'HalloweenGrenade') {
+            let { playSound } = require('../indexServer');
+            playSound('Grenade', this.position);
+            throwableObjects.push(new HalloweenGrenade(this, this.position.x, this.position.y, packet.gunDir, MS));
         }
 
         let userItems = this.items;

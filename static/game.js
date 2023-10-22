@@ -15,6 +15,7 @@ var particles = [];
 var items = [];
 var myItems = [];
 var throwableObjects = [];
+var supplies = [];
 
 var mouseDir = 0;
 var mouseClick = false;
@@ -53,6 +54,16 @@ var startedTouches = [];
 var touches = [];
 
 var bush = null;
+
+var sounds = new Map();
+sounds.set("ShotGun", 'assets/sound/shotgun.wav');
+sounds.set("Gun", 'assets/sound/gun.wav');
+sounds.set("Explosion", 'assets/sound/explosion.wav');
+sounds.set("Grenade", 'assets/sound/grenade.wav');
+sounds.set("BulletHit", 'assets/sound/bulletHit.wav');
+sounds.set("Drink", 'assets/sound/drink.wav');
+sounds.set("Bandage", 'assets/sound/bandage.wav');
+sounds.set("HalloweenGrenadeExplosion", 'assets/sound/laugh.wav');
 
 addEventListener('mousedown', (e) => {
     mouseClick = true;
@@ -138,6 +149,9 @@ class GameScene extends Scene {
         this.shotGunHandImage = new Image();
         this.shotGunHandImage.src = 'assets/shotGunWithHand.png';
 
+        this.grenadeLauncherHandImage = new Image();
+        this.grenadeLauncherHandImage.src = 'assets/grenadeLauncherWithHand.png';
+
         this.itemBackgroundImage = new Image();
         this.itemBackgroundImage.src = 'assets/itemBackground.png';
 
@@ -156,6 +170,12 @@ class GameScene extends Scene {
         this.shotGunItemImage = new Image();
         this.shotGunItemImage.src = 'assets/shotGunItem.png';
 
+        this.grenadeLauncherItemImage = new Image();
+        this.grenadeLauncherItemImage.src = 'assets/grenadeLauncher.png';
+
+        this.machineGunItemImage = new Image();
+        this.machineGunItemImage.src = 'assets/machineGunItem.png';
+
         this.bandageItemImage = new Image();
         this.bandageItemImage.src = 'assets/bandageItem.png';
 
@@ -168,8 +188,14 @@ class GameScene extends Scene {
         this.grenadeItemImage = new Image();
         this.grenadeItemImage.src = 'assets/grenadeItem.png';
 
+        this.halloweenGrenadeItemImage = new Image();
+        this.halloweenGrenadeItemImage.src = 'assets/halloweenGrenadeItem.png';
+
         this.deathImage = new Image();
         this.deathImage.src = 'assets/death.png';
+
+        this.supplyImage = new Image();
+        this.supplyImage.src = 'assets/supply.png';
     }
 
     initializeGame = () => {
@@ -362,6 +388,8 @@ class GameScene extends Scene {
 
             let textureCoord = Mathf.getRenderInfo(users[i].position, MS, MS);
 
+            if (!textureCoord.inScreen) continue;
+
             textureCoord.renderPosition.x = Math.round(textureCoord.renderPosition.x);
             textureCoord.renderPosition.y = Math.round(textureCoord.renderPosition.y);
 
@@ -393,6 +421,8 @@ class GameScene extends Scene {
     renderTool = (user) => {
         let toolCoord = Mathf.getRenderInfo(user.gunPosition, user.gunSize.width, user.gunSize.height);
 
+        if (!toolCoord.inScreen) return;
+
         ctx.save();
         ctx.translate(toolCoord.renderPosition.x, toolCoord.renderPosition.y);
         ctx.rotate(user.visualDir);
@@ -409,6 +439,8 @@ class GameScene extends Scene {
                 }
                 else if (currentItem.type == 'ShotGun') {
                     ctx.drawImage(this.shotGunHandImage, -toolCoord.renderWidth / 2, -toolCoord.renderHeight / 2, toolCoord.renderWidth, toolCoord.renderHeight);
+                } else if (currentItem.type == 'GrenadeLauncher') {
+                    ctx.drawImage(this.grenadeLauncherHandImage, -toolCoord.renderWidth / 2, -toolCoord.renderHeight / 2, toolCoord.renderWidth, toolCoord.renderHeight);
                 }
             } else {
                 let toolCoord = Mathf.getRenderInfo(user.gunPosition, MS, MS);
@@ -425,6 +457,8 @@ class GameScene extends Scene {
     renderBullets = () => {
         for (let i = 0; i < bullets.length; i++) {
             let textureCoord = Mathf.getRenderInfo(bullets[i].position, bullets[i].bulletRadius, bullets[i].bulletRadius);
+
+            if (!textureCoord.inScreen) continue;
 
             textureCoord.renderPosition.x = Math.round(textureCoord.renderPosition.x);
             textureCoord.renderPosition.y = Math.round(textureCoord.renderPosition.y);
@@ -456,6 +490,7 @@ class GameScene extends Scene {
         for (let i = 0; i < landforms.length; i++) {
             let textureCoord = Mathf.getRenderInfo(landforms[i].position, MS * 2, MS * 2);
 
+            if (!textureCoord.inScreen) continue;
             textureCoord.renderPosition.x = Math.round(textureCoord.renderPosition.x);
             textureCoord.renderPosition.y = Math.round(textureCoord.renderPosition.y);
 
@@ -516,6 +551,8 @@ class GameScene extends Scene {
             itemImage = this.machineGunItemImage;
         } else if (item.type == 'ShotGun') {
             itemImage = this.shotGunItemImage;
+        } else if (item.type == 'GrenadeLauncher') {
+            itemImage = this.grenadeLauncherItemImage;
         } else if (item.type == 'Bandage') {
             itemImage = this.bandageItemImage;
         } else if (item.type == 'AidKit') {
@@ -524,6 +561,8 @@ class GameScene extends Scene {
             itemImage = this.monsterEnergyItemImage;
         } else if (item.type == 'Grenade') {
             itemImage = this.grenadeItemImage;
+        } else if (item.type == 'HalloweenGrenade') {
+            itemImage = this.halloweenGrenadeItemImage;
         }
 
         return itemImage;
@@ -621,6 +660,9 @@ class GameScene extends Scene {
             if (itemImage == null) continue;
 
             let textureCoord = Mathf.getRenderInfo(items[i].position, MS / 3 * 4, MS / 3 * 4);
+
+            if (!textureCoord.inScreen) continue;
+
             ctx.drawImage(itemImage, textureCoord.renderPosition.x - textureCoord.renderWidth / 2,
                 textureCoord.renderPosition.y - textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
             ctx.drawImage(this.itemBackgroundImage, textureCoord.renderPosition.x - textureCoord.renderWidth / 2,
@@ -635,15 +677,35 @@ class GameScene extends Scene {
 
             if (throwableObjects[i].type == 'Grenade') {
                 objectImage = this.grenadeItemImage;
+            } else if (throwableObjects[i].type == 'HalloweenGrenade') {
+                objectImage = this.halloweenGrenadeItemImage;
             }
 
             if (objectImage == null) continue;
 
             let textureCoord = Mathf.getRenderInfo(throwableObjects[i].position, MS, MS);
+
+            if (!textureCoord.inScreen) continue;
+
             ctx.save();
             ctx.translate(textureCoord.renderPosition.x, textureCoord.renderPosition.y);
             ctx.rotate(throwableObjects[i].visualDir);
             ctx.drawImage(objectImage, -textureCoord.renderWidth / 2, -textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
+            ctx.restore();
+        }
+    }
+
+    renderSupply = () => {
+        for (let i = 0; i < supplies.length; i++) {
+            let supply = supplies[i];
+            let textureCoord = Mathf.getRenderInfo(supply.position, supply.width, supply.height);
+
+            if (!textureCoord.inScreen) continue;
+            particles.push(new SupplyGas(0, 0, Math.random() * 30 + 20, Math.random() * 30 + 20));
+
+            ctx.save();
+            ctx.translate(textureCoord.renderPosition.x, textureCoord.renderPosition.y);
+            ctx.drawImage(this.supplyImage, -textureCoord.renderWidth / 2, -textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
             ctx.restore();
         }
     }
@@ -660,6 +722,7 @@ class GameScene extends Scene {
         this.renderThrowableObjects();
 
         this.renderPlayers();
+        this.renderSupply();
 
         this.renderParticles();
 
@@ -667,9 +730,6 @@ class GameScene extends Scene {
 
         this.renderUI();
         this.renderDebug(); // TODO : disable this debug function
-
-        //        this.renderJoystick(this.padPosition, this.joystickTouch);
-        //        this.renderJoystick(this.gunPadPosition, this.gunJoystickTouch);
 
         this.renderDieScreen();
     }
@@ -702,6 +762,7 @@ socket.on('gameData', (packet) => {
 
     bullets = packet.bullets;
     items = packet.items;
+    supplies = packet.supplies;
 
     targetDamageCircle = packet.damageCircle;
 });
@@ -735,5 +796,23 @@ socket.on('particleBullet', (packet) => {
 socket.on('explosion', (packet) => {
     for (let i = 0; i < 100; i++) {
         particles.push(new Explosion(packet.position.x, packet.position.y, Math.random() * 30 + 20, Math.random() * 30 + 20));
+    }
+});
+
+socket.on('halloweenExplosion', (packet) => {
+    for (let i = 0; i < 100; i++) {
+        particles.push(new HalloweenExplosion(packet.position.x, packet.position.y, Math.random() * 30 + 20, Math.random() * 30 + 20));
+    }
+});
+
+socket.on('playSound', (packet) => {
+    if (sounds.has(packet.src)) {
+        var _sound = new Howl({
+            src: [sounds.get(packet.src)],
+        });
+        _sound.pos((packet.position.x - myPlayer.position.x) / 200, (packet.position.y - myPlayer.position.y) / 200, 0);
+        _sound.play();
+    } else {
+        console.error('unknown sound : ' + packet.src);
     }
 });

@@ -25,5 +25,14 @@ const shotGun = {
     gap: 50 / 5,
 };
 
+const grenadeLauncher = {
+    name: 'grenadeLauncher',
+    shotSpeed: 0.005,
+    shotRange: 550,
+    bulletSpeed: 30,
+    damage: 3,
+    gap: 50 / 5,
+};
 
-module.exports = { pistol, machineGun, shotGun };
+
+module.exports = { pistol, machineGun, shotGun, grenadeLauncher };
