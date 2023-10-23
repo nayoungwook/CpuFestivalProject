@@ -32,12 +32,28 @@ const DAMAGE_CIRCLE_RADIUS = MAP_SCALE / 2;
 var damageCircle = { position: { x: 0, y: 0 }, radius: DAMAGE_CIRCLE_RADIUS };
 var landforms = [];
 
+function createPositionInCircle() {
+    let done = false;
+    let result;
+
+    while (!done) {
+        let _position = { x: Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, y: Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2 }
+        if (Mathf.getDistance(_position, damageCircle.position) <= damageCircle.radius) {
+            result = _position;
+            done = true;
+        }
+    }
+
+    return result;
+}
+
 io.on('connection', (socket) => {
     socket.on('enterGameRoom', (packet) => {
         let key = createUserKey(users);
         io.emit('enterGameRoomConfirmed', { key: key });
 
-        users.set(key, new Player(key, packet.name, Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2));
+        let _position = createPositionInCircle();
+        users.set(key, new Player(key, packet.name, _position.x, _position.y));
         //  users.set(key, new Player(key, packet.name, 0, 0));
     });
     socket.on("ping", (callback) => {
