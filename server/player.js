@@ -274,6 +274,7 @@ class Player {
                 }
             } else if (this.currentItem.type == 'MonsterEnergy') {
                 this.shield += this.currentItem.shield;
+                this.status.moveSpeed += 0.5;
             }
 
             let item = this.items[this.selectedSlot - 1];
