@@ -1,6 +1,7 @@
 const { Bullet } = require('./bullet');
 const { pistol, machineGun, shotGun } = require('./gun');
 const { GrenadeItem } = require('./item');
+const { jmTeacher } = require('./melee');
 const { Mathf } = require('./neko');
 const { throwableObjects, Grenade, HalloweenGrenade } = require('./throwableObject');
 
@@ -38,50 +39,56 @@ class Player {
         this.visualDir = 0;
 
         this.gun = machineGun;
+        this.melee = jmTeacher;
         this.moveSpeed = 4;
 
         this.status = {
             moveSpeed: 4,
             gun: this.gun,
-        }
+            melee: this.melee,
+        };
+
+        this.buff = {}
 
         this.reboundValue = 0;
         this.shotVisualDir = false;
         this.expendableCharge = 0;
+
+        this.meleeDir = 0;
+        this.meleeTargetDir = 0;
+        this.visualMeleeType = 1;
     }
 
-    tick = (users, damageCircle, io, MS, items) => {
-        this.moveSpeed += (this.status.moveSpeed - this.moveSpeed) / 10;
-        this.reboundValue += (0 - this.reboundValue) / 10;
-
-        this.currentItem = this.items[this.selectedSlot - 1];
-
-        if (this.health + this.shield >= this.fullHealth) {
-            this.shield = this.fullHealth - this.health;
+    initializeBuff = () => {
+        this.buff = {
+            moveSpeed: 0,
+            autoHeal: false,
         }
+    }
 
-        if (this.currentItem != null) {
-            if (this.currentItem.itemType == 'Gun') {
-                this.gun = this.currentItem.gunData;
-                this.status.gun = this.gun;
-            }
-        } else {
-            this.status.gun = null;
-        }
+    getBuffData = () => {
+        this.initializeBuff();
+        for (let i = 0; i < this.items.length; i++) {
+            if (this.items[i] == null) continue;
 
-        if (this.useTimer < 1) {
-            if (this.currentItem != null) {
-                if (this.currentItem.itemType == 'Gun')
-                    this.useTimer += this.status.gun.shotSpeed;
-                else if (this.currentItem.itemType == 'Expendable')
-                    this.useTimer = 1;
+            let _item = this.items[i];
+
+            if (_item.type == 'JPTeacher') {
+                this.buff.autoHeal = true;
             }
         }
+    }
 
-        if (Mathf.getDistance(damageCircle.position, this.position) > damageCircle.radius) {
-            this.health -= 0.1;
+    checkItem = () => {
+        this.getBuffData();
+
+        if (this.buff.autoHeal) {
+            if (this.health + 0.02 <= this.fullHealth)
+                this.health += 0.02;
         }
+    }
 
+    checkHealth = () => {
         if (this.health <= 0) {
             let outItems = [];
             for (let i = 0; i < this.items.length; i++) {
@@ -107,6 +114,54 @@ class Player {
             io.emit('playerDied', { user: this, key: this.key });
             users.delete(this.key);
         }
+    }
+
+    updateItem = () => {
+        if (this.currentItem != null) {
+            if (this.currentItem.itemType == 'Gun') {
+                this.gun = this.currentItem.gunData;
+                this.status.gun = this.gun;
+                this.status.melee = null;
+            } else if (this.currentItem.itemType == 'Melee') {
+                this.melee = this.currentItem.meleeData;
+                this.status.gun = null;
+                this.status.melee = this.melee;
+            }
+        } else {
+            this.status.gun = null;
+            this.status.melee = null;
+        }
+
+        if (this.useTimer < 1) {
+            if (this.currentItem != null) {
+                if (this.currentItem.itemType == 'Gun')
+                    this.useTimer += this.status.gun.shotSpeed;
+                else if (this.currentItem.itemType == 'Expendable')
+                    this.useTimer = 1;
+                else if (this.currentItem.itemType == 'Melee')
+                    this.useTimer += this.status.melee.meleeSpeed;
+            }
+        }
+    }
+
+    tick = (users, damageCircle, io, MS, items) => {
+        this.meleeDir += (this.meleeTargetDir - this.meleeDir) / 2;
+        this.moveSpeed += (this.status.moveSpeed - this.moveSpeed) / 10;
+        this.reboundValue += (0 - this.reboundValue) / 10;
+        this.currentItem = this.items[this.selectedSlot - 1];
+
+        if (this.health + this.shield >= this.fullHealth) {
+            this.shield = this.fullHealth - this.health;
+        }
+
+        this.updateItem();
+
+        if (Mathf.getDistance(damageCircle.position, this.position) > damageCircle.radius) {
+            this.health -= 0.1;
+        }
+
+        this.checkHealth();
+        this.checkItem();
     }
 
     checkCollision = (landforms, supplies, MS) => {
@@ -145,56 +200,68 @@ class Player {
         if (!this.shotVisualDir)
             this.visualDir = this.dir;
 
-        if (this.currentItem != null && this.currentItem.itemType == 'Gun') {
+        if (this.currentItem != null) {
+            if (this.currentItem.itemType == 'Gun') {
+                if (this.gun.name == 'pistol') {
+                    this.gunPosition = {
+                        x: this.position.x + Math.cos(this.visualDir) * (MS + this.reboundValue),
+                        y: this.position.y + Math.sin(this.visualDir) * (MS + this.reboundValue),
+                    }
 
-            if (this.gun.name == 'pistol') {
-                this.gunPosition = {
-                    x: this.position.x + Math.cos(this.visualDir) * (MS + this.reboundValue),
-                    y: this.position.y + Math.sin(this.visualDir) * (MS + this.reboundValue),
+                    this.gunSize = {
+                        width: MS, height: MS
+                    }
                 }
+                else if (this.gun.name == 'machineGun') {
+                    this.gunPosition = {
+                        x: this.position.x + Math.cos(this.visualDir) * (MS / 3 + this.reboundValue) + Math.cos(this.visualDir + Math.PI / 2) * MS / 2,
+                        y: this.position.y + Math.sin(this.visualDir) * (MS / 3 + this.reboundValue) + Math.sin(this.visualDir + Math.PI / 2) * MS / 2,
+                    }
 
-                this.gunSize = {
-                    width: MS, height: MS
+                    this.gunSize = {
+                        width: MS * 8.4 / 5, height: MS * 5 / 5
+                    }
                 }
-            }
-            else if (this.gun.name == 'machineGun') {
+                else if (this.gun.name == 'shotGun') {
+                    this.gunPosition = {
+                        x: this.position.x + Math.cos(this.visualDir) * (MS / 3 + this.reboundValue) + Math.cos(this.visualDir + Math.PI / 2) * MS / 2,
+                        y: this.position.y + Math.sin(this.visualDir) * (MS / 3 + this.reboundValue) + Math.sin(this.visualDir + Math.PI / 2) * MS / 2,
+                    }
+
+                    this.gunSize = {
+                        width: MS * 8.4 / 5, height: MS * 5 / 5
+                    }
+                }
+                else if (this.gun.name == 'grenadeLauncher') {
+                    this.gunPosition = {
+                        x: this.position.x + Math.cos(this.visualDir) * (MS / 3 + this.reboundValue) + Math.cos(this.visualDir + Math.PI / 2) * MS / 2,
+                        y: this.position.y + Math.sin(this.visualDir) * (MS / 3 + this.reboundValue) + Math.sin(this.visualDir + Math.PI / 2) * MS / 2,
+                    }
+
+                    this.gunSize = {
+                        width: MS * 8.4 / 5, height: MS * 5 / 5
+                    }
+                }
+            } else if (this.currentItem.itemType == 'Melee') {
+                if (this.melee.name == 'jmTeacher') {
+                    this.gunPosition = {
+                        x: this.position.x + Math.cos(this.visualDir) * (MS + this.reboundValue),
+                        y: this.position.y + Math.sin(this.visualDir) * (MS + this.reboundValue),
+                    }
+                    this.meleeTargetDir = this.visualMeleeType * Math.PI / 3;
+
+                    this.gunSize = {
+                        width: MS * 8.4 / 5, height: MS * 5 / 5
+                    }
+                }
+            } else {
                 this.gunPosition = {
                     x: this.position.x + Math.cos(this.visualDir) * (MS / 3 + this.reboundValue) + Math.cos(this.visualDir + Math.PI / 2) * MS / 2,
                     y: this.position.y + Math.sin(this.visualDir) * (MS / 3 + this.reboundValue) + Math.sin(this.visualDir + Math.PI / 2) * MS / 2,
                 }
-
                 this.gunSize = {
-                    width: MS * 8.4 / 5, height: MS * 5 / 5
+                    width: MS, MS
                 }
-            }
-            else if (this.gun.name == 'shotGun') {
-                this.gunPosition = {
-                    x: this.position.x + Math.cos(this.visualDir) * (MS / 3 + this.reboundValue) + Math.cos(this.visualDir + Math.PI / 2) * MS / 2,
-                    y: this.position.y + Math.sin(this.visualDir) * (MS / 3 + this.reboundValue) + Math.sin(this.visualDir + Math.PI / 2) * MS / 2,
-                }
-
-                this.gunSize = {
-                    width: MS * 8.4 / 5, height: MS * 5 / 5
-                }
-            }
-            else if (this.gun.name == 'grenadeLauncher') {
-                this.gunPosition = {
-                    x: this.position.x + Math.cos(this.visualDir) * (MS / 3 + this.reboundValue) + Math.cos(this.visualDir + Math.PI / 2) * MS / 2,
-                    y: this.position.y + Math.sin(this.visualDir) * (MS / 3 + this.reboundValue) + Math.sin(this.visualDir + Math.PI / 2) * MS / 2,
-                }
-
-                this.gunSize = {
-                    width: MS * 8.4 / 5, height: MS * 5 / 5
-                }
-            }
-        } else {
-
-            this.gunPosition = {
-                x: this.position.x + Math.cos(this.visualDir) * (MS / 3 + this.reboundValue) + Math.cos(this.visualDir + Math.PI / 2) * MS / 2,
-                y: this.position.y + Math.sin(this.visualDir) * (MS / 3 + this.reboundValue) + Math.sin(this.visualDir + Math.PI / 2) * MS / 2,
-            }
-            this.gunSize = {
-                width: MS, MS
             }
         }
 
@@ -309,6 +376,13 @@ class Player {
         userItems[(userItems.indexOf(item))] = null;
     }
 
+    useMelee = (packet, MS) => {
+        if (this.currentItem.type == 'JMTeacher') {
+            this.visualMeleeType *= -1;
+        }
+        this.useTimer = 0;
+    }
+
     use = (packet, bullets, MS, items) => {
         if (this.currentItem == null) return;
 
@@ -318,6 +392,8 @@ class Player {
             this.useExpendable(packet, bullets, MS, items);
         } else if (this.currentItem.itemType == 'Throwable') {
             this.useThrowableObject(packet, throwableObjects, MS, items);
+        } else if (this.currentItem.itemType == 'Melee') {
+            this.useMelee(packet, MS);
         }
     }
 

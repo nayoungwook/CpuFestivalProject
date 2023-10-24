@@ -1,4 +1,5 @@
 const { pistol, shotGun, machineGun, grenadeLauncher } = require("./gun");
+const { jmTeacher } = require("./melee");
 const { Mathf } = require("./neko");
 
 var items = [];
@@ -164,7 +165,23 @@ class HalloweenGrenadeItem extends Item {
     }
 }
 
+class JPTeacherItem extends Item {
+    constructor(x, y) {
+        super('JPTeacher', x, y);
+        this.itemType = 'Passive';
+    }
+}
+
+class JMTeacherItem extends Item {
+    constructor(x, y) {
+        super('JMTeacher', x, y);
+        this.itemType = 'Melee';
+        this.meleeData = jmTeacher;
+    }
+}
+
 module.exports = {
     items, Item, PistolItem, MachineGunItem, ShotGunItem, GrenadeLauncherItem
-    , BandageItem, AidKitItem, MonsterEnergyItem, GrenadeItem, HalloweenGrenadeItem
+    , BandageItem, AidKitItem, MonsterEnergyItem, GrenadeItem, HalloweenGrenadeItem,
+    JPTeacherItem, JMTeacherItem,
 };

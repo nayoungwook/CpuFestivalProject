@@ -196,6 +196,12 @@ class GameScene extends Scene {
 
         this.supplyImage = new Image();
         this.supplyImage.src = 'assets/supply.png';
+
+        this.jpTeacherItemImage = new Image();
+        this.jpTeacherItemImage.src = 'assets/JPTeacher.jpg';
+
+        this.jmTeacherItemImage = new Image();
+        this.jmTeacherItemImage.src = 'assets/JMTeacher.jpg';
     }
 
     initializeGame = () => {
@@ -442,6 +448,10 @@ class GameScene extends Scene {
                 } else if (currentItem.type == 'GrenadeLauncher') {
                     ctx.drawImage(this.grenadeLauncherHandImage, -toolCoord.renderWidth / 2, -toolCoord.renderHeight / 2, toolCoord.renderWidth, toolCoord.renderHeight);
                 }
+            } else if (currentItem.itemType == 'Melee') {
+                ctx.rotate(user.meleeDir);
+                ctx.translate(Math.cos(user.meleeDir) * MS / 2, Math.sin(user.meleeDir) * MS / 3);
+                ctx.drawImage(this.grenadeLauncherHandImage, -toolCoord.renderWidth / 2, -toolCoord.renderHeight / 2, toolCoord.renderWidth, toolCoord.renderHeight);
             } else {
                 let toolCoord = Mathf.getRenderInfo(user.gunPosition, MS, MS);
                 if (this.getItemImage(user.items[user.selectedSlot - 1]) != null)
@@ -546,8 +556,7 @@ class GameScene extends Scene {
 
         if (item.type == 'Pistol') {
             itemImage = this.pistolItemImage;
-        }
-        else if (item.type == 'MachineGun') {
+        } else if (item.type == 'MachineGun') {
             itemImage = this.machineGunItemImage;
         } else if (item.type == 'ShotGun') {
             itemImage = this.shotGunItemImage;
@@ -563,6 +572,10 @@ class GameScene extends Scene {
             itemImage = this.grenadeItemImage;
         } else if (item.type == 'HalloweenGrenade') {
             itemImage = this.halloweenGrenadeItemImage;
+        } else if (item.type == 'JPTeacher') {
+            itemImage = this.jpTeacherItemImage;
+        } else if (item.type == 'JMTeacher') {
+            itemImage = this.jmTeacherItemImage;
         }
 
         return itemImage;

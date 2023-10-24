@@ -11,7 +11,7 @@ const { Bush, Rock } = require('./server/mapObject');
 const { Bullet, bullets } = require('./server/bullet');
 const { createUserKey } = require('./server/keyCreator');
 const { Player, users } = require('./server/player');
-const { items, PistolItem, MachineGunItem, ShotGunItem, BandageItem, MonsterEnergyItem, AidKitItem, GrenadeItem, HalloweenGrenadeItem, GrenadeLauncherItem } = require('./server/item');
+const { items, PistolItem, MachineGunItem, ShotGunItem, BandageItem, MonsterEnergyItem, AidKitItem, GrenadeItem, HalloweenGrenadeItem, GrenadeLauncherItem, JPTeacherItem, JMTeacherItem } = require('./server/item');
 const { throwableObjects, Grenade } = require('./server/throwableObject');
 const { Supply, supplies } = require('./server/supply');
 const { grenadeLauncher } = require('./server/gun');
@@ -53,8 +53,8 @@ io.on('connection', (socket) => {
         io.emit('enterGameRoomConfirmed', { key: key });
 
         let _position = createPositionInCircle();
-        users.set(key, new Player(key, packet.name, _position.x, _position.y));
-        //  users.set(key, new Player(key, packet.name, 0, 0));
+        //users.set(key, new Player(key, packet.name, _position.x, _position.y));
+        users.set(key, new Player(key, packet.name, 0, 0));
     });
     socket.on("ping", (callback) => {
         callback();
@@ -155,6 +155,7 @@ function sendGamePackets() {
         userData.expendableCharge = value.expendableCharge;
         userData.shield = value.shield;
         userData.selectedSlot = value.selectedSlot;
+        userData.meleeDir = value.meleeDir;
 
         data.users.push(userData);
     }
@@ -195,6 +196,9 @@ function initialize() {
         items.push(new HalloweenGrenadeItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
         items.push(new GrenadeLauncherItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
     }
+
+    items.push(new JPTeacherItem(0, 0));
+    items.push(new JMTeacherItem(0, 0));
 }
 
 function update() {
