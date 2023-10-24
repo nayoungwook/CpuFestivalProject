@@ -88,7 +88,7 @@ class Player {
         }
     }
 
-    checkHealth = () => {
+    checkHealth = (MS, items, users, io) => {
         if (this.health <= 0) {
             let outItems = [];
             for (let i = 0; i < this.items.length; i++) {
@@ -160,7 +160,7 @@ class Player {
             this.health -= 0.1;
         }
 
-        this.checkHealth();
+        this.checkHealth(MS, items, users, io);
         this.checkItem();
     }
 
@@ -376,14 +376,35 @@ class Player {
         userItems[(userItems.indexOf(item))] = null;
     }
 
-    useMelee = (packet, MS) => {
+    useMelee = (packet, io, MS) => {
         if (this.currentItem.type == 'JMTeacher') {
             this.visualMeleeType *= -1;
+
+            for (const [key, value] of users.entries()) {
+                if (value != this) {
+                    let _dir = Math.atan2(value.position.y - this.position.y, value.position.x - this.position.x);
+
+                    if (Math.abs(this.visualDir - _dir) <= Math.PI / 3 * 2 && Mathf.getDistance(this.position, value.position) <= MS * 4) {
+                        if (value.shield > 0)
+                            io.emit('particleShield', { position: value.position });
+
+                        value.shield -= this.melee.damage;
+
+                        if (value.shield < 0) {
+                            io.emit('particleBlood', { position: value.position });
+                            value.health -= -value.shield;
+                            value.shield = 0;
+                        }
+
+                        value.moveSpeed = value.status.moveSpeed / 3;
+                    }
+                }
+            }
         }
         this.useTimer = 0;
     }
 
-    use = (packet, bullets, MS, items) => {
+    use = (packet, bullets, MS, items, io) => {
         if (this.currentItem == null) return;
 
         if (this.currentItem.itemType == 'Gun') {
@@ -393,11 +414,11 @@ class Player {
         } else if (this.currentItem.itemType == 'Throwable') {
             this.useThrowableObject(packet, throwableObjects, MS, items);
         } else if (this.currentItem.itemType == 'Melee') {
-            this.useMelee(packet, MS);
+            this.useMelee(packet, io, MS);
         }
     }
 
-    useUpdate = (packet, bullets, MS, items) => {
+    useUpdate = (packet, bullets, MS, items, io) => {
 
         if (this.currentItem != null && this.currentItem.itemType == 'Throwable')
             this.useTimer = 1;
@@ -414,7 +435,7 @@ class Player {
         }
 
         if (ableToUse) {
-            this.use(packet, bullets, MS, items);
+            this.use(packet, bullets, MS, items, io);
         }
     }
 }

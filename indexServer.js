@@ -63,7 +63,7 @@ io.on('connection', (socket) => {
         if (users.has(packet.key)) {
             // update user with packet
             users.get(packet.key).movement({ joystickDir: packet.joystickDir, move: packet.move }, landforms, supplies, MS);
-            users.get(packet.key).useUpdate({ gunDir: packet.gunDir, use: packet.use }, bullets, MS, items);
+            users.get(packet.key).useUpdate({ gunDir: packet.gunDir, use: packet.use }, bullets, MS, items, io);
             users.get(packet.key).selectedSlot = packet.selectedSlot;
         }
     });
