@@ -202,6 +202,9 @@ class GameScene extends Scene {
 
         this.jmTeacherItemImage = new Image();
         this.jmTeacherItemImage.src = 'assets/JMTeacher.jpg';
+
+        this.jaTeacherItemImage = new Image();
+        this.jaTeacherItemImage.src = 'assets/JATeacherItem.png';
     }
 
     initializeGame = () => {
@@ -453,9 +456,15 @@ class GameScene extends Scene {
                 ctx.translate(Math.cos(user.meleeDir) * MS / 2, Math.sin(user.meleeDir) * MS / 3);
                 ctx.drawImage(this.grenadeLauncherHandImage, -toolCoord.renderWidth / 2, -toolCoord.renderHeight / 2, toolCoord.renderWidth, toolCoord.renderHeight);
             } else {
-                let toolCoord = Mathf.getRenderInfo(user.gunPosition, MS, MS);
-                if (this.getItemImage(user.items[user.selectedSlot - 1]) != null)
-                    ctx.drawImage(this.getItemImage(user.items[user.selectedSlot - 1]), -toolCoord.renderWidth / 2, -toolCoord.renderHeight / 2, toolCoord.renderWidth, toolCoord.renderHeight);
+                if (currentItem.type == 'JATeacher') {
+                    ctx.rotate(-user.visualDir);
+                    let toolCoord = Mathf.getRenderInfo(user.gunPosition, MS, MS);
+                    ctx.drawImage(this.jaTeacherItemImage, -toolCoord.renderWidth, -toolCoord.renderHeight, toolCoord.renderWidth * 2, toolCoord.renderHeight * 2);
+                } else {
+                    let toolCoord = Mathf.getRenderInfo(user.gunPosition, MS, MS);
+                    if (this.getItemImage(user.items[user.selectedSlot - 1]) != null)
+                        ctx.drawImage(this.getItemImage(user.items[user.selectedSlot - 1]), -toolCoord.renderWidth / 2, -toolCoord.renderHeight / 2, toolCoord.renderWidth, toolCoord.renderHeight);
+                }
             }
         } else {
 
@@ -576,6 +585,8 @@ class GameScene extends Scene {
             itemImage = this.jpTeacherItemImage;
         } else if (item.type == 'JMTeacher') {
             itemImage = this.jmTeacherItemImage;
+        } else if (item.type == 'JATeacher') {
+            itemImage = this.jaTeacherItemImage;
         }
 
         return itemImage;

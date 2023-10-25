@@ -11,7 +11,7 @@ const { Bush, Rock } = require('./server/mapObject');
 const { Bullet, bullets } = require('./server/bullet');
 const { createUserKey } = require('./server/keyCreator');
 const { Player, users } = require('./server/player');
-const { items, PistolItem, MachineGunItem, ShotGunItem, BandageItem, MonsterEnergyItem, AidKitItem, GrenadeItem, HalloweenGrenadeItem, GrenadeLauncherItem, JPTeacherItem, JMTeacherItem } = require('./server/item');
+const { items, PistolItem, MachineGunItem, ShotGunItem, BandageItem, MonsterEnergyItem, AidKitItem, GrenadeItem, HalloweenGrenadeItem, GrenadeLauncherItem, JPTeacherItem, JMTeacherItem, JATeacherItem } = require('./server/item');
 const { throwableObjects, Grenade } = require('./server/throwableObject');
 const { Supply, supplies } = require('./server/supply');
 const { grenadeLauncher } = require('./server/gun');
@@ -177,7 +177,7 @@ function initialize() {
     createLandforms(landforms, MS);
     decreaseDamageCircle();
 
-    //supplies.push(new Supply(MS, 0, 0));
+    supplies.push(new Supply(MS, 0, 0));
 
     for (let i = 0; i < 2; i++) {
         items.push(new PistolItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
@@ -199,6 +199,7 @@ function initialize() {
 
     items.push(new JPTeacherItem(0, 0));
     items.push(new JMTeacherItem(0, 0));
+    items.push(new JATeacherItem(0, 0));
 }
 
 function update() {

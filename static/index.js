@@ -114,6 +114,11 @@ class LobbyScene extends Scene {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         this.renderTitle();
+
+        ctx.fillSTyle - 'rgb(0, 0, 0)';
+        ctx.textAlign = 'left';
+        ctx.font = "bold 20px blackHanSans";
+        ctx.fillText('<Copyright 2023. made by 나영욱, 이대원, 김보승, 왕환웅, 김리안, 최수경, 송지원, 최종훈, 박건하, 김민제, 임혜원 (Cpu 동아리) All right reserved.>', 20, canvas.height - 20);
     }
 }
 

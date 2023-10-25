@@ -133,8 +133,8 @@ class HalloweenGrenade extends Grenade {
 
         for (const [key, value] of users.entries()) {
             if (value != this.owner) {
-                if (Math.abs(this.position.x - value.position.x) <= (MS / 2 + MS / 3 * 2 / 2) &&
-                    Math.abs(this.position.y - value.position.y) <= (MS / 2 + MS / 3 * 2 / 2)) {
+                if (Math.abs(this.position.x - value.position.x) <= (MS / 2 + MS / 3 * 2) / 2 &&
+                    Math.abs(this.position.y - value.position.y) <= (MS / 2 + MS / 3 * 2) / 2) {
                     this.explode(io, users, supplies, MS);
                 }
             }

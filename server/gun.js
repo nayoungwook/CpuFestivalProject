@@ -1,9 +1,9 @@
 const pistol = {
     name: 'pistol',
     shotSpeed: 0.05,
-    shotRange: 1250,
+    shotRange: 950,
     bulletSpeed: 35,
-    damage: 6,
+    damage: 4,
     gap: 0,
 };
 

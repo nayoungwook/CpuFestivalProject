@@ -180,8 +180,17 @@ class JMTeacherItem extends Item {
     }
 }
 
+class JATeacherItem extends Item {
+    constructor(x, y) {
+        super('JATeacher', x, y);
+        this.itemType = 'Expendable';
+        this.heal = 10;
+        this.chargeTime = 1 / 60 / 4;
+    }
+}
+
 module.exports = {
     items, Item, PistolItem, MachineGunItem, ShotGunItem, GrenadeLauncherItem
     , BandageItem, AidKitItem, MonsterEnergyItem, GrenadeItem, HalloweenGrenadeItem,
-    JPTeacherItem, JMTeacherItem,
+    JPTeacherItem, JMTeacherItem, JATeacherItem,
 };
