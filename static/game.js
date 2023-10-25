@@ -17,6 +17,22 @@ var myItems = [];
 var throwableObjects = [];
 var supplies = [];
 
+var logs = [];
+
+class Log {
+    constructor(content) {
+        this.content = content;
+        this.timer = 6 * 60;
+    }
+
+    update = () => {
+        this.timer--;
+        if (this.timer <= 0) {
+            logs.splice(logs.indexOf(this), 1);
+        }
+    }
+}
+
 var mouseDir = 0;
 var mouseClick = false;
 var keyDir = 0;
@@ -271,6 +287,10 @@ class GameScene extends Scene {
             if (key.n3) selectedSlot = 3;
         }
 
+        for (let i = 0; i < logs.length; i++) {
+            logs[i].update();
+        }
+
         keyDir = Math.atan2(yv, xv);
         mouseDir = Math.atan2(mousePosition.y - myPlayerRenderPosition.y, mousePosition.x - myPlayerRenderPosition.x);
         const start = Date.now();
@@ -314,11 +334,10 @@ class GameScene extends Scene {
         findMyPlayer();
         if (!myPlayer) return;
 
-        Camera.position.x += Math.round(((myPlayer.position.x - canvas.width / 2) - Camera.position.x) / 15);
-        Camera.position.y += Math.round(((myPlayer.position.y - canvas.height / 2) - Camera.position.y) / 15);
+        Camera.position.x += Math.round(((myPlayer.position.x - canvas.width / 2) - Camera.position.x) / 40);
+        Camera.position.y += Math.round(((myPlayer.position.y - canvas.height / 2) - Camera.position.y) / 40);
 
         //this.updateJoyStick();
-
         this.sendPacket();
     }
 
@@ -451,20 +470,10 @@ class GameScene extends Scene {
                 } else if (currentItem.type == 'GrenadeLauncher') {
                     ctx.drawImage(this.grenadeLauncherHandImage, -toolCoord.renderWidth / 2, -toolCoord.renderHeight / 2, toolCoord.renderWidth, toolCoord.renderHeight);
                 }
-            } else if (currentItem.itemType == 'Melee') {
-                ctx.rotate(user.meleeDir);
-                ctx.translate(Math.cos(user.meleeDir) * MS / 2, Math.sin(user.meleeDir) * MS / 3);
-                ctx.drawImage(this.grenadeLauncherHandImage, -toolCoord.renderWidth / 2, -toolCoord.renderHeight / 2, toolCoord.renderWidth, toolCoord.renderHeight);
             } else {
-                if (currentItem.type == 'JATeacher') {
-                    ctx.rotate(-user.visualDir);
-                    let toolCoord = Mathf.getRenderInfo(user.gunPosition, MS, MS);
-                    ctx.drawImage(this.jaTeacherItemImage, -toolCoord.renderWidth, -toolCoord.renderHeight, toolCoord.renderWidth * 2, toolCoord.renderHeight * 2);
-                } else {
-                    let toolCoord = Mathf.getRenderInfo(user.gunPosition, MS, MS);
-                    if (this.getItemImage(user.items[user.selectedSlot - 1]) != null)
-                        ctx.drawImage(this.getItemImage(user.items[user.selectedSlot - 1]), -toolCoord.renderWidth / 2, -toolCoord.renderHeight / 2, toolCoord.renderWidth, toolCoord.renderHeight);
-                }
+                let toolCoord = Mathf.getRenderInfo(user.gunPosition, MS, MS);
+                if (this.getItemImage(user.items[user.selectedSlot - 1]) != null)
+                    ctx.drawImage(this.getItemImage(user.items[user.selectedSlot - 1]), -toolCoord.renderWidth / 2, -toolCoord.renderHeight / 2, toolCoord.renderWidth, toolCoord.renderHeight);
             }
         } else {
 
@@ -565,7 +574,8 @@ class GameScene extends Scene {
 
         if (item.type == 'Pistol') {
             itemImage = this.pistolItemImage;
-        } else if (item.type == 'MachineGun') {
+        }
+        else if (item.type == 'MachineGun') {
             itemImage = this.machineGunItemImage;
         } else if (item.type == 'ShotGun') {
             itemImage = this.shotGunItemImage;
@@ -581,12 +591,6 @@ class GameScene extends Scene {
             itemImage = this.grenadeItemImage;
         } else if (item.type == 'HalloweenGrenade') {
             itemImage = this.halloweenGrenadeItemImage;
-        } else if (item.type == 'JPTeacher') {
-            itemImage = this.jpTeacherItemImage;
-        } else if (item.type == 'JMTeacher') {
-            itemImage = this.jmTeacherItemImage;
-        } else if (item.type == 'JATeacher') {
-            itemImage = this.jaTeacherItemImage;
         }
 
         return itemImage;
@@ -661,6 +665,16 @@ class GameScene extends Scene {
                 ctx.font = "bold 20px blackHanSans";
                 ctx.fillText('(' + Math.round(users[i].expendableCharge * 100) + '%)', textureCoord.renderPosition.x, textureCoord.renderPosition.y - MS / 3 * 2);
             }
+
+            for (let i = 0; i < logs.length; i++) {
+                ctx.fillStyle = 'rgba(20, 20, 20, 0.6)';
+                ctx.fillRect(canvas.width - 600, i * 50, 600, 50);
+                ctx.fillStyle = 'rgb(255, 255, 245)';
+                ctx.textAlign = 'left';
+                ctx.font = "bold 22px blackHanSans";
+                console.log(logs[i].content);
+                ctx.fillText(logs[i].content, canvas.width - 600 + 20, i * 50 + 30);
+            }
         }
 
         this.renderItemSlots();
@@ -668,7 +682,7 @@ class GameScene extends Scene {
         ctx.fillStyle = 'rgb(255, 255, 245)';
         ctx.textAlign = 'right';
         ctx.font = "bold 40px blackHanSans";
-        ctx.fillText('Alive : ' + users.length, canvas.width - 30, 50);
+        ctx.fillText('Alive : ' + users.length, canvas.width / 2, 50);
     }
 
     renderParticles = () => {
@@ -839,4 +853,8 @@ socket.on('playSound', (packet) => {
     } else {
         console.error('unknown sound : ' + packet.src);
     }
+});
+
+socket.on('addLog', (packet) => {
+    logs.push(new Log(packet.content));
 });

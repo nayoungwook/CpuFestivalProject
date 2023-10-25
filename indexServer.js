@@ -53,8 +53,8 @@ io.on('connection', (socket) => {
         io.emit('enterGameRoomConfirmed', { key: key });
 
         let _position = createPositionInCircle();
-        //users.set(key, new Player(key, packet.name, _position.x, _position.y));
-        users.set(key, new Player(key, packet.name, 0, 0));
+        users.set(key, new Player(key, packet.name, _position.x, _position.y));
+        // users.set(key, new Player(key, packet.name, 0, 0));
     });
     socket.on("ping", (callback) => {
         callback();
@@ -177,7 +177,7 @@ function initialize() {
     createLandforms(landforms, MS);
     decreaseDamageCircle();
 
-    supplies.push(new Supply(MS, 0, 0));
+    //supplies.push(new Supply(MS, 0, 0));
 
     for (let i = 0; i < 2; i++) {
         items.push(new PistolItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
@@ -197,9 +197,9 @@ function initialize() {
         items.push(new GrenadeLauncherItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
     }
 
-    items.push(new JPTeacherItem(0, 0));
-    items.push(new JMTeacherItem(0, 0));
-    items.push(new JATeacherItem(0, 0));
+    //items.push(new JPTeacherItem(0, 0));
+    //items.push(new JMTeacherItem(0, 0));
+    //items.push(new JATeacherItem(0, 0));
 }
 
 function update() {
@@ -209,7 +209,25 @@ function update() {
 
 server.listen(3000, async () => {
     console.log('listening on *:3000');
+    console.log('CpuFestivalProject 서버 시작중...');
+    console.log('initialize completed.');
+
     initialize();
+    /*
+    const waitInterval = setInterval(
+        () => {
+            console.log('서버 인원 대기중, 현재 인원 : ' + users.size);
+            if (users.size >= 8) {
+
+                console.log('서버인원 확인됨.');
+                io.emit('endWaiting');
+                initialize();
+
+                clearInterval(waitInterval);
+            }
+        }, 1000);
+        */
+
 });
 
 module.exports = { playSound };

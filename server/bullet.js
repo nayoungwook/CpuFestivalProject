@@ -18,8 +18,6 @@ class Bullet {
     }
 
     delete = (bullets) => {
-        let { playSound } = require('../indexServer');
-        playSound('BulletHit', this.position);
         bullets.splice(bullets.indexOf(this), 1);
     }
 
@@ -50,6 +48,9 @@ class Bullet {
                 if (Math.abs(this.position.x - value.position.x) <= (MS / 2 + this.bulletRadius / 2) &&
                     Math.abs(this.position.y - value.position.y) <= (MS / 2 + this.bulletRadius / 2)) {
 
+                    let { playSound } = require('../indexServer');
+                    playSound('BulletHit', this.position);
+
                     if (value.shield > 0)
                         io.emit('particleShield', { position: this.position });
 
@@ -59,6 +60,16 @@ class Bullet {
                         io.emit('particleBlood', { position: this.position });
                         value.health -= -value.shield;
                         value.shield = 0;
+                    }
+
+                    if (value.health <= 0) {
+                        let contents = [
+                            value.name + ' 이 ' + this.owner.name + ' 에 의해 심장에 바람구멍이 났습니다..',
+                            value.name + ' 이 ' + this.owner.name + ' 에 의해 철분보충을 하였습니다.',
+                            value.name + ' 이 ' + this.owner.name + ' 에 의해 발려버렸습니다.',
+                            value.name + ' 이 ' + this.owner.name + ' 의 총알을 잡으려 시도했습니다.',
+                        ];
+                        io.emit('addLog', { content: contents[Math.round(Math.random() * (contents.length - 1))] });
                     }
 
                     value.moveSpeed = value.status.moveSpeed / 2;

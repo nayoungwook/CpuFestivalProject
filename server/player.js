@@ -157,7 +157,16 @@ class Player {
         this.updateItem();
 
         if (Mathf.getDistance(damageCircle.position, this.position) > damageCircle.radius) {
-            this.health -= 0.1;
+            if (this.shield > 0)
+                io.emit('particleShield', { position: this.position });
+
+            this.shield -= 0.1;
+
+            if (this.shield < 0) {
+                io.emit('particleBlood', { position: this.position });
+                this.health -= -this.shield;
+                this.shield = 0;
+            }
         }
 
         this.checkHealth(MS, items, users, io);

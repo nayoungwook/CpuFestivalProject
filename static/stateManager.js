@@ -16,6 +16,8 @@ changeState = (_state) => {
         App.scene = new LobbyScene();
     } else if (state == 'game') {
         App.scene = new GameScene();
+    } else if(state == 'waiting'){
+        App.scene = new Waiting();
     }
 }
 

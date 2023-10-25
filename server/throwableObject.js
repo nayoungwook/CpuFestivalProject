@@ -26,12 +26,22 @@ class Grenade {
         io.emit('explosion', { position: this.position });
 
         for (const [key, value] of users.entries()) {
-            if (Mathf.getDistance(value.position, this.position) <= MS * 5) {
+            if (Mathf.getDistance(value.position, this.position) <= MS * 3) {
                 value.shield -= this.damage;
 
                 if (value.shield < 0) {
                     value.health -= -value.shield;
                     value.shield = 0;
+                }
+
+                if (value.health <= 0) {
+                    let contents = [
+                        value.name + ' 이 수류탄으로 호두를 까먹으려 시도했습니다.',
+                        value.name + ' 이 수류탄과 하나가 되었습니다.',
+                        value.name + ' 이 여러조각이 되었습니다.',
+                        value.name + ' 이 수류탄으로 충격량 실험을 하였습니다.',
+                    ];
+                    io.emit('addLog', { content: contents[Math.round(Math.random() * (contents.length - 1))] });
                 }
 
                 value.moveSpeed = value.status.moveSpeed / 5;
@@ -97,12 +107,20 @@ class HalloweenGrenade extends Grenade {
         io.emit('halloweenExplosion', { position: this.position });
 
         for (const [key, value] of users.entries()) {
-            if (Mathf.getDistance(value.position, this.position) <= MS * 5) {
+            if (Mathf.getDistance(value.position, this.position) <= MS * 3) {
                 value.shield -= this.damage;
 
                 if (value.shield < 0) {
                     value.health -= -value.shield;
                     value.shield = 0;
+                }
+
+                if (value.health <= 0) {
+                    let contents = [
+                        value.name + ' 이 할로윈을 제대로 느꼈습니다.',
+                        value.name + ' 이 할로윈 분장을 현실화 시켰습니다.',
+                    ];
+                    io.emit('addLog', { content: contents[Math.round(Math.random() * (contents.length - 1))] });
                 }
 
                 value.moveSpeed = value.status.moveSpeed / 2;

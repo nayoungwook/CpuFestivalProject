@@ -125,6 +125,7 @@ class LobbyScene extends Scene {
 socket.on('enterGameRoomConfirmed', (packet) => {
     if (state == 'index' && waitingEnter) {
         document.cookie = packet.key;
+        // changeState('waiting');
         changeState('game');
     }
 });
