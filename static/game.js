@@ -26,7 +26,7 @@ class Log {
     }
 
     update = () => {
-        this.timer--;
+        this.timer -= 0.5;
         if (this.timer <= 0) {
             logs.splice(logs.indexOf(this), 1);
         }
@@ -69,9 +69,17 @@ var MAP_SCALE = 0;
 var startedTouches = [];
 var touches = [];
 
+var hideAlpha = 1;
+
 var bush = null;
 
 var sounds = new Map();
+var mapWidth = 1, mapHeight = 1;
+
+var winner = false;
+var winnerAlpha = 0;
+var winnerTimer = 0;
+
 sounds.set("ShotGun", 'assets/sound/shotgun.wav');
 sounds.set("Gun", 'assets/sound/gun.wav');
 sounds.set("Explosion", 'assets/sound/explosion.wav');
@@ -84,6 +92,8 @@ sounds.set("HalloweenGrenadeExplosion", 'assets/sound/laugh.wav');
 addEventListener('mousedown', (e) => {
     mouseClick = true;
 });
+
+addEventListener('contextmenu', event => event.preventDefault());
 
 addEventListener('mousemove', (e) => {
     mousePosition.x = e.clientX;
@@ -267,7 +277,6 @@ class GameScene extends Scene {
     }
 
     tick = () => {
-
         let xv = 0, yv = 0;
         if (key.w) yv -= 1;
         if (key.s) yv += 1;
@@ -329,6 +338,11 @@ class GameScene extends Scene {
         }
         else {
             Camera.position.z = zoomRatio;
+        }
+
+        if (winner) {
+            winnerTimer += 0.05;
+            winnerAlpha += (0.8 - winnerAlpha) / 50;
         }
 
         findMyPlayer();
@@ -566,6 +580,8 @@ class GameScene extends Scene {
     renderField = () => {
         let coord = Mathf.getRenderInfo(new Vector(-MAP_SCALE / 2, -MAP_SCALE / 2), MAP_SCALE, MAP_SCALE);
         ctx.drawImage(this.field, coord.renderPosition.x, coord.renderPosition.y, coord.renderWidth, coord.renderHeight);
+        mapWidth = coord.renderWidth;
+        mapHeight = coord.renderHeight;
     }
 
     getItemImage = (item) => {
@@ -672,7 +688,6 @@ class GameScene extends Scene {
                 ctx.fillStyle = 'rgb(255, 255, 245)';
                 ctx.textAlign = 'left';
                 ctx.font = "bold 22px blackHanSans";
-                console.log(logs[i].content);
                 ctx.fillText(logs[i].content, canvas.width - 600 + 20, i * 50 + 30);
             }
         }
@@ -682,7 +697,9 @@ class GameScene extends Scene {
         ctx.fillStyle = 'rgb(255, 255, 245)';
         ctx.textAlign = 'right';
         ctx.font = "bold 40px blackHanSans";
-        ctx.fillText('Alive : ' + users.length, canvas.width / 2, 50);
+        ctx.fillText('Alive : ' + users.length, canvas.width / 2 - 200, 50);
+        ctx.fillStyle = 'rgb(255, 55, 45)';
+        ctx.fillText('Kills : ' + myPlayer.kill, canvas.width / 2 + 200, 50);
     }
 
     renderParticles = () => {
@@ -738,38 +755,135 @@ class GameScene extends Scene {
             let supply = supplies[i];
             let textureCoord = Mathf.getRenderInfo(supply.position, supply.width, supply.height);
 
-            if (!textureCoord.inScreen) continue;
-            particles.push(new SupplyGas(0, 0, Math.random() * 30 + 20, Math.random() * 30 + 20));
+            if (textureCoord.inScreen) {
+                ctx.font = "bold 20px blackHanSans";
+                ctx.textAlign = 'center';
 
-            ctx.save();
-            ctx.translate(textureCoord.renderPosition.x, textureCoord.renderPosition.y);
-            ctx.drawImage(this.supplyImage, -textureCoord.renderWidth / 2, -textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
-            ctx.restore();
+                ctx.fillStyle = 'rgb(255, 255, 245)';
+                ctx.fillText('보급', textureCoord.renderPosition.x, textureCoord.renderPosition.y - MS * 2);
+
+                ctx.fillStyle = 'rgb(39, 39, 54)';
+                ctx.beginPath();
+                ctx.roundRect(textureCoord.renderPosition.x - MS / 2 - 5, textureCoord.renderPosition.y - MS / 2 * 3 - 5, MS + 10, MS / 5 + 10, [5]);
+                ctx.fill();
+
+                ctx.fillStyle = 'rgb(39, 39, 54)';
+                ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS / 2 * 3, MS, MS / 5);
+
+                if (supply.fullHealth != 0) {
+                    let _healthBar = (MS * supply.health) / supply.fullHealth;
+                    let _shieldBar = (MS * supply.shield) / supply.fullHealth;
+
+                    ctx.fillStyle = 'rgb(255, 100, 154)';
+                    ctx.fillRect(textureCoord.renderPosition.x - MS / 2, textureCoord.renderPosition.y - MS / 2 * 3, _healthBar, MS / 5);
+
+                    ctx.fillStyle = 'rgb(100, 255, 120)';
+                    ctx.fillRect(textureCoord.renderPosition.x - MS / 2 + _healthBar, textureCoord.renderPosition.y - MS / 2 * 3, _shieldBar, MS / 5);
+                }
+
+                if (!textureCoord.inScreen) continue;
+
+                if (supplies[i].fakeY == 0 && Math.round(Math.random()) == 0)
+                    particles.push(new SupplyGas(supplies[i].position.x, supplies[i].position.y + supplies[i].fakeY, Math.random() * 30 + 20, Math.random() * 30 + 20));
+
+                ctx.save();
+                ctx.translate(textureCoord.renderPosition.x, textureCoord.renderPosition.y);
+                ctx.fillStyle = 'rgb(20, 20, 20, 0.6)';
+                ctx.fillRect(-textureCoord.renderWidth / 2, -textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
+                ctx.globalAlpha = 1 + supplies[i].fakeY / 600;
+                ctx.drawImage(this.supplyImage, -textureCoord.renderWidth / 2, -textureCoord.renderHeight / 2 + supplies[i].fakeY, textureCoord.renderWidth, textureCoord.renderHeight);
+                ctx.globalAlpha = 1;
+                ctx.restore();
+            } else {
+                ctx.save();
+                if (textureCoord.renderPosition.x < 0)
+                    textureCoord.renderPosition.x = 0 + MS / 2;
+
+                if (textureCoord.renderPosition.x > canvas.width)
+                    textureCoord.renderPosition.x = canvas.width - MS / 3;
+
+                if (textureCoord.renderPosition.y < 0)
+                    textureCoord.renderPosition.y = MS / 2;
+
+                if (textureCoord.renderPosition.y > canvas.height)
+                    textureCoord.renderPosition.y = canvas.height - MS / 3;
+                ctx.globalAlpha = 0.5;
+                ctx.drawImage(this.supplyImage, textureCoord.renderPosition.x - textureCoord.renderWidth / 2, textureCoord.renderPosition.y - textureCoord.renderHeight / 2, textureCoord.renderWidth, textureCoord.renderHeight);
+                ctx.globalAlpha = 1;
+                ctx.restore();
+            }
+        }
+    }
+
+    renderWinnerScreen = () => {
+        ctx.fillStyle = `rgba(0, 0, 0, ${winnerAlpha})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        if (winnerTimer > 5) {
+            ctx.fillStyle = '#E0D900';
+            ctx.font = "bold 100px blackHanSans";
+            ctx.textAlign = 'center';
+
+            ctx.fillText('WINNER', canvas.width / 2, canvas.height / 2 - 200);
+        }
+        if (winnerTimer > 10) {
+            ctx.fillStyle = '#E0D900';
+            ctx.font = "bold 100px blackHanSans";
+            ctx.textAlign = 'center';
+
+            ctx.fillText('WINNER', canvas.width / 2, canvas.height / 2 - 100);
+        }
+        if (winnerTimer > 15) {
+            ctx.fillStyle = '#E0D900';
+            ctx.font = "bold 100px blackHanSans";
+            ctx.textAlign = 'center';
+
+            ctx.fillText('CHICKEN', canvas.width / 2, canvas.height / 2);
+        }
+        if (winnerTimer > 20) {
+            ctx.fillStyle = '#E0D900';
+            ctx.font = "bold 100px blackHanSans";
+            ctx.textAlign = 'center';
+
+            ctx.fillText('DINNER', canvas.width / 2, canvas.height / 2 + 100);
+        }
+        if (winnerTimer > 25) {
+            ctx.fillStyle = '#E0D900';
+            ctx.font = "bold 100px blackHanSans";
+            ctx.textAlign = 'center';
+
+            ctx.fillText('No. #1', canvas.width / 2, canvas.height / 2 + 200);
         }
     }
 
     render = () => {
-        ctx.fillStyle = 'rgb(120, 255, 150)';
+        ctx.fillStyle = '#28723d';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         this.renderField();
 
         this.renderLandforms();
+        this.renderSupply();
         this.renderBullets();
         this.renderItems();
         this.renderThrowableObjects();
 
         this.renderPlayers();
-        this.renderSupply();
 
         this.renderParticles();
 
         this.renderDamageCircle();
 
         this.renderUI();
-        this.renderDebug(); // TODO : disable this debug function
+        this.renderWinnerScreen();
+        // this.renderDebug(); // TODO : disable this debug function
 
         this.renderDieScreen();
+
+        ctx.fillStyle = `rgba(0, 0, 0, ${hideAlpha})`;
+        if (hideAlpha > 0)
+            hideAlpha -= 0.001;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 }
 
@@ -840,6 +954,13 @@ socket.on('explosion', (packet) => {
 socket.on('halloweenExplosion', (packet) => {
     for (let i = 0; i < 100; i++) {
         particles.push(new HalloweenExplosion(packet.position.x, packet.position.y, Math.random() * 30 + 20, Math.random() * 30 + 20));
+    }
+});
+
+socket.on('gameEnd', (packet) => {
+    if (packet.winner.key == document.cookie) {
+        winner = true;
+        console.log('winner!');
     }
 });
 

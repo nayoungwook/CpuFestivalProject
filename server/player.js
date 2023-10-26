@@ -57,6 +57,8 @@ class Player {
         this.meleeDir = 0;
         this.meleeTargetDir = 0;
         this.visualMeleeType = 1;
+
+        this.kill = 0;
     }
 
     initializeBuff = () => {
@@ -192,7 +194,7 @@ class Player {
         return null;
     }
 
-    movement = (packet, landforms, supplies, MS) => {
+    movement = (packet, landforms, supplies, MS, MAP_SCALE) => {
         if (packet.move) {
             this.dir = packet.joystickDir;
 
@@ -286,6 +288,23 @@ class Player {
 
         this.position.x += (this.targetPosition.x - this.position.x) / 10;
         this.position.y += (this.targetPosition.y - this.position.y) / 10;
+
+        if (this.position.x < MAP_SCALE / -2) {
+            this.targetPosition.x = MAP_SCALE / -2;
+            this.position.x = MAP_SCALE / -2;
+        }
+        if (this.position.x > MAP_SCALE / 2) {
+            this.targetPosition.x = MAP_SCALE / 2;
+            this.position.x = MAP_SCALE / 2;
+        }
+        if (this.position.y < MAP_SCALE / -2) {
+            this.targetPosition.y = MAP_SCALE / -2;
+            this.position.y = MAP_SCALE / -2;
+        }
+        if (this.position.y > MAP_SCALE / 2) {
+            this.targetPosition.y = MAP_SCALE / 2;
+            this.position.y = MAP_SCALE / 2;
+        }
     }
 
     useGun = (packet, bullets, MS, items) => {

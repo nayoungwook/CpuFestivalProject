@@ -1,7 +1,7 @@
 const pistol = {
     name: 'pistol',
     shotSpeed: 0.05,
-    shotRange: 950,
+    shotRange: 750,
     bulletSpeed: 35,
     damage: 4,
     gap: 0,
@@ -9,19 +9,19 @@ const pistol = {
 
 const machineGun = {
     name: 'machineGun',
-    shotSpeed: 0.15,
-    shotRange: 1250,
+    shotSpeed: 0.1,
+    shotRange: 950,
     bulletSpeed: 40,
-    damage: 1.5,
+    damage: 1,
     gap: 50 / 5,
 };
 
 const shotGun = {
     name: 'shotGun',
     shotSpeed: 0.02,
-    shotRange: 550,
+    shotRange: 650,
     bulletSpeed: 30,
-    damage: 3,
+    damage: 4,
     gap: 50 / 5,
 };
 

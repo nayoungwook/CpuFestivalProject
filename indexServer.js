@@ -4,6 +4,8 @@ const http = require('http');
 const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
+const readline = require('readline');
+const { stdin: input, stdout: output } = require('process');
 
 const { createLandforms, MAP_SCALE } = require('./server/gameServer');
 const { Mathf } = require('./server/neko');
@@ -38,7 +40,7 @@ function createPositionInCircle() {
 
     while (!done) {
         let _position = { x: Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, y: Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2 }
-        if (Mathf.getDistance(_position, damageCircle.position) <= damageCircle.radius) {
+        if (Mathf.getDistance(_position, damageCircle.position) <= damageCircle.radius - MS * 5) {
             result = _position;
             done = true;
         }
@@ -62,7 +64,7 @@ io.on('connection', (socket) => {
     socket.on('userInput', (packet) => {
         if (users.has(packet.key)) {
             // update user with packet
-            users.get(packet.key).movement({ joystickDir: packet.joystickDir, move: packet.move }, landforms, supplies, MS);
+            users.get(packet.key).movement({ joystickDir: packet.joystickDir, move: packet.move }, landforms, supplies, MS, MAP_SCALE);
             users.get(packet.key).useUpdate({ gunDir: packet.gunDir, use: packet.use }, bullets, MS, items, io);
             users.get(packet.key).selectedSlot = packet.selectedSlot;
         }
@@ -96,6 +98,8 @@ function playSound(src, position) {
     io.emit('playSound', { src: src, position: position });
 }
 
+var gameInterval = null;
+
 function updateGame() {
     for (let i = 0; i < bullets.length; i++) {
         bullets[i].movement(bullets, users, landforms, supplies, MS, io);
@@ -116,6 +120,15 @@ function updateGame() {
     for (let i = 0; i < items.length; i++) {
         items[i].update();
         items[i].collision(MS, users, landforms);
+    }
+
+    if (users.size == 1) {
+        io.emit('gameEnd', { winner: Array.from(users.values())[0] });
+        console.log('게임 종료. 승자 : ' + Array.from(users.values())[0].name);
+        console.log('!!!상품 수령 후, 서버를 종료하세요!!!');
+        if (gameInterval != null) {
+            clearInterval(gameInterval);
+        }
     }
 }
 
@@ -156,6 +169,7 @@ function sendGamePackets() {
         userData.shield = value.shield;
         userData.selectedSlot = value.selectedSlot;
         userData.meleeDir = value.meleeDir;
+        userData.kill = value.kill;
 
         data.users.push(userData);
     }
@@ -164,24 +178,38 @@ function sendGamePackets() {
 }
 
 function decreaseDamageCircle() {
-
     damageCircle.position.x += Math.round(Math.random() * 200) - 100;
     damageCircle.position.y += Math.round(Math.random() * 200) - 100;
-    damageCircle.radius -= 100;
+    damageCircle.radius -= 90;
 
     if (damageCircle.radius > 0)
-        setTimeout(() => { decreaseDamageCircle() }, 1000 * 20);
+        setTimeout(() => { decreaseDamageCircle() }, 1000 * (Math.round(Math.random() * 5) + 3));
+}
+
+function summonSupply() {
+    let _position = createPositionInCircle();
+    supplies.push(new Supply(MS, _position.x, _position.y));
+    io.emit('addLog', { content: '보급품이 드랍되었습니다!' });
+
+    setTimeout(() => {
+        summonSupply();
+    }, 1000 * 60 * (Math.round(Math.random() * 3) + 1));
 }
 
 function initialize() {
     createLandforms(landforms, MS);
     decreaseDamageCircle();
 
-    //supplies.push(new Supply(MS, 0, 0));
+    setTimeout(() => {
+        summonSupply();
+    }, 1000 * 60 * (Math.round(Math.random() * 3) + 1));
 
     for (let i = 0; i < 2; i++) {
         items.push(new PistolItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
+        items.push(new PistolItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
         items.push(new MachineGunItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
+        items.push(new MachineGunItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
+        items.push(new ShotGunItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
         items.push(new ShotGunItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
         items.push(new BandageItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
         items.push(new BandageItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
@@ -196,10 +224,6 @@ function initialize() {
         items.push(new HalloweenGrenadeItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
         items.push(new GrenadeLauncherItem(Math.round(Math.random() * MAP_SCALE) - MAP_SCALE / 2, Math.round(Math.random() * 8000) - 4000));
     }
-
-    //items.push(new JPTeacherItem(0, 0));
-    //items.push(new JMTeacherItem(0, 0));
-    //items.push(new JATeacherItem(0, 0));
 }
 
 function update() {
@@ -212,24 +236,30 @@ server.listen(3000, async () => {
     console.log('CpuFestivalProject 서버 시작중...');
     console.log('initialize completed.');
 
-    initialize();
-    /*
-    const waitInterval = setInterval(
-        () => {
-            console.log('서버 인원 대기중, 현재 인원 : ' + users.size);
-            if (users.size >= 8) {
+    const rl = readline.createInterface({ input, output });
 
-                console.log('서버인원 확인됨.');
-                io.emit('endWaiting');
-                initialize();
+    let userCount = 0;
 
-                clearInterval(waitInterval);
-            }
-        }, 1000);
-        */
+    await rl.question('유저 수 입력 : ', (answer) => {
+        // TODO: Log the answer in a database
+        userCount = answer;
+        rl.close();
 
+        const waitInterval = setInterval(
+            () => {
+                console.log('서버 인원 대기중, 현재 인원 : ' + users.size + '/' + userCount);
+                if (users.size >= userCount) {
+
+                    console.log('서버인원 확인됨.');
+                    io.emit('endWaiting');
+                    initialize();
+
+                    clearInterval(waitInterval);
+                    gameInterval = setInterval(update, 1000 / 60);
+                }
+            }, 1000);
+    });
 });
 
-module.exports = { playSound };
 
-setInterval(update, 1000 / 60);
+module.exports = { playSound };

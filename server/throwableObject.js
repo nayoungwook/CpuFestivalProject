@@ -42,15 +42,10 @@ class Grenade {
                         value.name + ' 이 수류탄으로 충격량 실험을 하였습니다.',
                     ];
                     io.emit('addLog', { content: contents[Math.round(Math.random() * (contents.length - 1))] });
+                    this.owner.kill++;
                 }
 
                 value.moveSpeed = value.status.moveSpeed / 5;
-            }
-        }
-
-        for (let i = 0; i < supplies.length; i++) {
-            if (Mathf.getDistance(supplies[i].position, this.position) <= MS * 3) {
-                supplies[i].health -= this.damage;
             }
         }
 
@@ -107,7 +102,7 @@ class HalloweenGrenade extends Grenade {
         io.emit('halloweenExplosion', { position: this.position });
 
         for (const [key, value] of users.entries()) {
-            if (Mathf.getDistance(value.position, this.position) <= MS * 3) {
+            if (Mathf.getDistance(value.position, this.position) <= MS * 5) {
                 value.shield -= this.damage;
 
                 if (value.shield < 0) {
@@ -121,15 +116,10 @@ class HalloweenGrenade extends Grenade {
                         value.name + ' 이 할로윈 분장을 현실화 시켰습니다.',
                     ];
                     io.emit('addLog', { content: contents[Math.round(Math.random() * (contents.length - 1))] });
+                    this.owner.kill++;
                 }
 
                 value.moveSpeed = value.status.moveSpeed / 2;
-            }
-        }
-
-        for (let i = 0; i < supplies.length; i++) {
-            if (Mathf.getDistance(supplies[i].position, this.position) <= MS * 3) {
-                supplies[i].health -= this.damage;
             }
         }
 

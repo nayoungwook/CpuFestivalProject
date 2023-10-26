@@ -37,9 +37,11 @@ class Bullet {
         for (let i = 0; i < supplies.length; i++) {
             if (Math.abs(supplies[i].position.x - this.position.x) <= (this.bulletRadius * 2 + supplies[i].width) / 2 &&
                 Math.abs(supplies[i].position.y - this.position.y) <= (this.bulletRadius * 2 + supplies[i].height) / 2) {
-                supplies[i].health -= this.damage;
-                io.emit('particleBullet', { position: this.position, radius: this.bulletRadius });
-                this.delete(bullets);
+                if (supplies[i].fakeY == 0) {
+                    supplies[i].health -= this.damage;
+                    io.emit('particleBullet', { position: this.position, radius: this.bulletRadius });
+                    this.delete(bullets);
+                }
             }
         }
 
@@ -70,6 +72,7 @@ class Bullet {
                             value.name + ' 이 ' + this.owner.name + ' 의 총알을 잡으려 시도했습니다.',
                         ];
                         io.emit('addLog', { content: contents[Math.round(Math.random() * (contents.length - 1))] });
+                        this.owner.kill++;
                     }
 
                     value.moveSpeed = value.status.moveSpeed / 2;
